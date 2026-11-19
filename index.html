@@ -6,7 +6,7 @@
 <title>Most Likely To</title>
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@500;700&display=swap" rel="stylesheet">
 <style>
-:root{--y:#FFFC00;--k:#0b0b0b;--g:#f2f2f2;--m:#6b6b6b}
+:root{--y:#FFFC00;--k:#0b0b0b}
 *{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent}
 html,body{height:100%;background:var(--y);color:var(--k);font-family:Archivo,system-ui,sans-serif;font-weight:500}
 #app{min-height:100%;max-width:480px;margin:0 auto;padding:calc(24px + env(safe-area-inset-top)) 22px calc(24px + env(safe-area-inset-bottom));display:flex;flex-direction:column}
@@ -14,8 +14,9 @@ h1,h2,.big{font-family:"Archivo Black",Impact,sans-serif;line-height:.95;letter-
 h1{font-size:56px}
 h2{font-size:34px}
 .tag{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+.top{display:flex;justify-content:space-between;margin-bottom:12px}
 .sp{flex:1}
-.btn{display:block;width:100%;border:0;background:var(--k);color:var(--y);font:inherit;font-family:"Archivo Black",Impact,sans-serif;font-size:18px;text-transform:uppercase;padding:18px;border-radius:14px;margin-top:10px}
+.btn{display:block;width:100%;border:0;background:var(--k);color:var(--y);font-family:"Archivo Black",Impact,sans-serif;font-size:18px;text-transform:uppercase;padding:18px;border-radius:14px;margin-top:10px}
 .btn:active{transform:scale(.98)}
 .btn.alt{background:transparent;color:var(--k);border:2.5px solid var(--k)}
 .btn[disabled]{opacity:.25}
@@ -23,23 +24,19 @@ h2{font-size:34px}
 input{flex:1;min-width:0;font:inherit;font-weight:700;font-size:18px;padding:16px;border:2.5px solid var(--k);border-radius:14px;background:#fff;color:var(--k);outline:0}
 .add{width:64px;margin:0;font-size:28px;padding:0}
 .chips{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0}
-.chip{background:var(--k);color:var(--y);padding:9px 14px;border-radius:99px;font-weight:700;font-size:15px}
-.prog{display:flex;gap:4px;margin-bottom:26px}
+.chip{background:var(--k);color:var(--y);padding:9px 14px;border-radius:99px;font-weight:700;font-size:15px;text-transform:capitalize}
+.chip.off{background:transparent;color:var(--k);border:2px solid var(--k);padding:7px 12px}
+.prog{display:flex;gap:4px;margin-bottom:22px}
 .prog i{flex:1;height:5px;border-radius:3px;background:rgba(0,0,0,.18)}
 .prog i.on{background:var(--k)}
-.q{font-size:38px;margin:10px 0 26px}
-.pick{background:#fff;border:2.5px solid var(--k);border-radius:14px;padding:17px 18px;font:inherit;font-weight:700;font-size:19px;text-align:left;margin-bottom:10px;color:var(--k);display:block;width:100%}
-.pick:active{background:var(--k);color:var(--y)}
-.who{font-family:"Archivo Black",Impact,sans-serif;font-size:44px;text-transform:uppercase;line-height:1}
-.bar{display:flex;align-items:center;gap:10px;margin:8px 0;font-weight:700}
-.bar b{width:84px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px}
-.bar span{height:14px;background:var(--k);border-radius:7px;min-width:4px;transition:width .6s cubic-bezier(.2,.8,.2,1)}
-.bar em{font-style:normal;font-size:14px}
-.win{background:var(--k);color:var(--y);border-radius:18px;padding:26px 22px;margin:8px 0 18px}
-.win .tag{opacity:.7}
-.list{margin-top:14px}
-.li{display:flex;justify-content:space-between;align-items:center;padding:14px 0;border-bottom:2px solid rgba(0,0,0,.15);font-weight:700}
-.li small{color:#3a3a00;font-weight:500}
+.q{font-size:38px;margin:6px 0 24px}
+.pick{background:#fff;border:2.5px solid var(--k);border-radius:14px;padding:17px 18px;font:inherit;font-weight:700;font-size:20px;text-align:left;margin-bottom:10px;color:var(--k);display:block;width:100%}
+.pick:active,.pick.sel{background:var(--k);color:var(--y)}
+.li{padding:14px 0;border-bottom:2px solid rgba(0,0,0,.15)}
+.li small{display:block;font-weight:700;font-size:12px;letter-spacing:.06em;text-transform:uppercase;opacity:.65;margin-bottom:4px}
+.li b{font-family:"Archivo Black",Impact,sans-serif;font-size:24px;text-transform:uppercase}
+.sum{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 6px}
+.err{font-size:13px;font-weight:700;margin-top:14px;color:#5a0000}
 .fade{animation:f .35s ease both}
 @keyframes f{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 </style>
@@ -71,127 +68,127 @@ const PROMPTS=[
 "Most likely to be secretly the funniest",
 "Most likely to ghost the group chat"
 ];
-const ROUNDS=8;
+const ROUNDS=6;
+const API='/api/questions';
+const MODES=['mixed','college','work','couples','roast','classic'];
 const app=document.getElementById('app');
-const esc=s=>s.replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let S={players:[],rounds:[],r:0,v:0,tally:[],log:[]};
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+let S={players:[],qs:[],src:'',err:'',mode:'mixed',i:0,picks:[],busy:false};
 
-function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
+function shuffle(a){a=a.slice();for(let k=a.length-1;k>0;k--){const j=Math.floor(Math.random()*(k+1));[a[k],a[j]]=[a[j],a[k]]}return a}
+function prog(){return `<div class="prog">${Array.from({length:ROUNDS},(_,k)=>`<i class="${k<=S.i?'on':''}"></i>`).join('')}</div>`}
 
 function home(){
   const n=S.players.length;
   app.innerHTML=`<div class="fade" style="display:flex;flex-direction:column;flex:1">
-    <div class="tag">Party game · 3+ players</div>
+    <div class="tag">Party game · 2+ players</div>
     <h1 style="margin:14px 0 10px">Most<br>Likely<br>To</h1>
-    <p style="max-width:300px;margin-bottom:26px">Pass the phone. Vote on your friends. Post the verdict.</p>
+    <p style="max-width:300px;margin-bottom:26px">Read the question out loud. Argue. Tap who it is.</p>
     <div class="row"><input id="nm" maxlength="14" placeholder="Add a player" autocomplete="off"><button class="btn add" onclick="addP()">+</button></div>
-    <div class="chips">${S.players.map((p,i)=>`<span class="chip" onclick="rmP(${i})">${esc(p)} ×</span>`).join('')}</div>
+    <div class="chips">${S.players.map((p,k)=>`<span class="chip" style="text-transform:none" onclick="rmP(${k})">${esc(p)} ×</span>`).join('')}</div>
+    <div class="tag">Questions</div>
+    <div class="chips" style="margin:10px 0 4px">${MODES.map(m=>`<span class="chip ${S.mode===m?'':'off'}" onclick="setMode('${m}')">${m}</span>`).join('')}</div>
     <div class="sp"></div>
-    <button class="btn" ${n<3?'disabled':''} onclick="start()">${n<3?`Need ${3-n} more`:'Start'}</button>
+    <button class="btn" ${n<2?'disabled':''} onclick="start()">${n<2?`Need ${2-n} more`:'Start'}</button>
   </div>`;
-  const i=document.getElementById('nm');
-  i.addEventListener('keydown',e=>{if(e.key==='Enter')addP()});
+  document.getElementById('nm').addEventListener('keydown',e=>{if(e.key==='Enter')addP()});
 }
+function setMode(m){S.mode=m;home()}
 function addP(){
   const i=document.getElementById('nm');const v=i.value.trim();
-  if(!v||S.players.length>=10||S.players.some(p=>p.toLowerCase()===v.toLowerCase()))return;
+  if(!v||S.players.length>=12||S.players.some(p=>p.toLowerCase()===v.toLowerCase()))return;
   S.players.push(v);home();document.getElementById('nm').focus();
 }
-function rmP(i){S.players.splice(i,1);home()}
+function rmP(k){S.players.splice(k,1);home()}
 
-function start(){
-  S.rounds=shuffle(PROMPTS).slice(0,ROUNDS);S.r=0;S.v=0;S.log=[];
-  S.tally=S.players.map(()=>0);vote();
+async function aiPrompts(){
+  S.err='';
+  try{
+    const ctl=new AbortController();const t=setTimeout(()=>ctl.abort(),15000);
+    const res=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({theme:S.mode,n:10}),signal:ctl.signal});
+    clearTimeout(t);
+    const d=await res.json().catch(()=>({}));
+    if(!res.ok){S.err=(d.error||'HTTP '+res.status)+(d.detail?': '+d.detail:'');return null}
+    if(!Array.isArray(d.prompts)||d.prompts.length<ROUNDS){S.err='too few questions';return null}
+    return d.prompts.slice(0,ROUNDS);
+  }catch(e){S.err=e.name==='AbortError'?'timeout':'network';return null}
 }
-function prog(){return `<div class="prog">${S.rounds.map((_,i)=>`<i class="${i<=S.r?'on':''}"></i>`).join('')}</div>`}
 
-function vote(){
-  const voter=S.players[S.v];
+async function start(){
+  let q=null;
+  if(S.mode!=='classic'){
+    app.innerHTML='<div class="fade" style="display:flex;flex-direction:column;flex:1;justify-content:center"><div class="tag">Writing your questions</div><h2 style="margin-top:12px">One sec</h2></div>';
+    q=await aiPrompts();
+  }else S.err='';
+  S.src=q?'ai':'local';
+  S.qs=q||shuffle(PROMPTS).slice(0,ROUNDS);
+  S.i=0;S.picks=[];S.busy=false;ask();
+}
+
+function ask(){
   app.innerHTML=`<div class="fade" style="display:flex;flex-direction:column;flex:1">
+    <div class="top"><span class="tag">${S.i+1} / ${ROUNDS}</span><span class="tag">${S.src==='ai'?'AI questions':'Built-in questions'}</span></div>
     ${prog()}
-    <div class="tag">Round ${S.r+1} of ${S.rounds.length}</div>
-    <div class="big q">${esc(S.rounds[S.r])}</div>
-    <div class="tag" style="margin-bottom:12px">${esc(voter)}, your vote</div>
-    ${S.players.map((p,i)=>i===S.v?'':`<button class="pick" onclick="cast(${i})">${esc(p)}</button>`).join('')}
+    <div class="big q">${esc(S.qs[S.i])}</div>
+    ${S.players.map((p,k)=>`<button class="pick" id="p${k}" onclick="pick(${k})">${esc(p)}</button>`).join('')}
+    ${S.err&&S.src!=='ai'?`<div class="err">AI failed: ${esc(S.err)}</div>`:''}
   </div>`;
 }
-function cast(i){
-  S.tally[i]++;S.v++;
-  if(S.v>=S.players.length)reveal();else vote();
+function pick(k){
+  if(S.busy)return;S.busy=true;S.picks.push(k);
+  document.getElementById('p'+k).classList.add('sel');
+  setTimeout(()=>{S.i++;S.busy=false;S.i>=ROUNDS?results():ask()},450);
 }
 
-function reveal(){
-  const max=Math.max(...S.tally);
-  const winners=S.players.filter((_,i)=>S.tally[i]===max);
-  const entry={prompt:S.rounds[S.r],winners,tally:S.tally.slice()};
-  S.log.push(entry);
-  const last=S.r===S.rounds.length-1;
+function results(){
+  const cnt=S.players.map((_,k)=>S.picks.filter(x=>x===k).length);
+  const order=S.players.map((p,k)=>({p,c:cnt[k]})).filter(o=>o.c).sort((a,b)=>b.c-a.c);
   app.innerHTML=`<div class="fade" style="display:flex;flex-direction:column;flex:1">
-    ${prog()}
-    <div class="win">
-      <div class="tag">${esc(entry.prompt)}</div>
-      <div class="who" style="margin-top:14px">${winners.map(esc).join(' &amp; ')}</div>
-    </div>
-    ${S.players.map((p,i)=>`<div class="bar"><b>${esc(p)}</b><span style="width:0" data-w="${max?S.tally[i]/max*100:0}"></span><em>${S.tally[i]}</em></div>`).join('')}
+    <div class="tag">6 / 6 · Done</div>
+    <h2 style="margin:12px 0 4px">The group<br>has spoken</h2>
+    <div class="sum">${order.map(o=>`<span class="chip" style="text-transform:none">${esc(o.p)} · ${o.c}</span>`).join('')}</div>
+    <div style="margin:8px 0 18px">${S.qs.map((q,n)=>`<div class="li"><small>${esc(q)}</small><b>${esc(S.players[S.picks[n]])}</b></div>`).join('')}</div>
     <div class="sp"></div>
-    <button class="btn alt" onclick="share(${S.log.length-1})">Share to story</button>
-    <button class="btn" onclick="${last?'final()':'next()'}">${last?'Final results':'Next round'}</button>
-  </div>`;
-  requestAnimationFrame(()=>requestAnimationFrame(()=>{
-    document.querySelectorAll('.bar span').forEach(s=>s.style.width=`calc((100% - 150px) * ${s.dataset.w/100})`);
-  }));
-}
-function next(){S.r++;S.v=0;S.tally=S.players.map(()=>0);vote()}
-
-function final(){
-  const wins=S.players.map(p=>S.log.filter(l=>l.winners.includes(p)).length);
-  const order=S.players.map((p,i)=>({p,w:wins[i]})).sort((a,b)=>b.w-a.w);
-  app.innerHTML=`<div class="fade" style="display:flex;flex-direction:column;flex:1">
-    <div class="tag">Final standings</div>
-    <h2 style="margin:12px 0 6px">${esc(order[0].p)}<br>runs this group</h2>
-    <div class="list">${order.map(o=>`<div class="li"><span>${esc(o.p)}</span><small>${o.w} title${o.w===1?'':'s'}</small></div>`).join('')}</div>
-    <div class="sp"></div>
-    <button class="btn alt" onclick="share(${S.log.findIndex(l=>l.winners.includes(order[0].p))})">Share top title</button>
+    <button class="btn alt" onclick="share()">Share to story</button>
     <button class="btn" onclick="start()">Play again</button>
     <button class="btn alt" onclick="home()">Change players</button>
   </div>`;
 }
 
 function wrap(ctx,text,x,y,w,lh){
-  const words=text.split(' ');let line='';
-  for(const word of words){
+  let line='';
+  for(const word of text.split(' ')){
     const t=line+word+' ';
     if(ctx.measureText(t).width>w&&line){ctx.fillText(line.trim(),x,y);line=word+' ';y+=lh}else line=t;
   }
   ctx.fillText(line.trim(),x,y);return y+lh;
 }
-async function share(idx){
-  const e=S.log[idx];
+async function share(){
+  try{await document.fonts.load('70px "Archivo Black"');await document.fonts.load('700 34px Archivo')}catch(_){}
   const c=document.createElement('canvas');c.width=1080;c.height=1920;
   const x=c.getContext('2d');
   x.fillStyle='#FFFC00';x.fillRect(0,0,1080,1920);
-  x.fillStyle='#0b0b0b';x.textBaseline='alphabetic';
-  x.font='700 34px Archivo, sans-serif';x.fillText('THE GROUP HAS SPOKEN',90,200);
-  x.font='64px "Archivo Black", Impact, sans-serif';
-  let y=wrap(x,e.prompt.toUpperCase(),90,560,900,76);
-  x.fillStyle='#0b0b0b';x.fillRect(90,y+40,900,420);
-  x.fillStyle='#FFFC00';
-  const name=e.winners.join(' & ').toUpperCase();
-  let size=130;x.font=`${size}px "Archivo Black", Impact, sans-serif`;
-  while(x.measureText(name).width>820&&size>48){size-=6;x.font=`${size}px "Archivo Black", Impact, sans-serif`}
-  x.fillText(name,130,y+40+250);
+  x.fillStyle='#0b0b0b';
+  x.font='700 34px Archivo, sans-serif';x.fillText('THE GROUP HAS SPOKEN',90,160);
+  let y=290;
+  S.qs.forEach((q,n)=>{
+    x.fillStyle='#0b0b0b';x.font='700 34px Archivo, sans-serif';
+    const ny=wrap(x,q.toUpperCase(),90,y,900,44);
+    const name=S.players[S.picks[n]].toUpperCase();
+    let size=70;x.font=`${size}px "Archivo Black", Impact, sans-serif`;
+    while(x.measureText(name).width>900&&size>34){size-=4;x.font=`${size}px "Archivo Black", Impact, sans-serif`}
+    x.fillText(name,90,ny+34);
+    y=ny+34+78;
+  });
   x.fillStyle='#0b0b0b';x.font='700 30px Archivo, sans-serif';
-  x.fillText('MOST LIKELY TO — PLAY WITH YOUR GROUP',90,1780);
+  x.fillText('MOST LIKELY TO — PLAY WITH YOUR GROUP',90,1820);
   const blob=await new Promise(r=>c.toBlob(r,'image/png'));
   const file=new File([blob],'verdict.png',{type:'image/png'});
   if(navigator.canShare&&navigator.canShare({files:[file]})){
-    try{await navigator.share({files:[file]});return}catch(_){return}
+    try{await navigator.share({files:[file]})}catch(_){}return;
   }
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='verdict.png';a.click();
 }
-
-/* Snap Minis hook: when the SDK is wired in, replace S.players with the
-   user's selected friends (display names / Bitmoji) before calling start(). */
 
 home();
 </script>
