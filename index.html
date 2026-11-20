@@ -37,6 +37,7 @@ input{flex:1;min-width:0;font:inherit;font-weight:700;font-size:18px;padding:16p
 .li b{font-family:"Archivo Black",Impact,sans-serif;font-size:24px;text-transform:uppercase}
 .sum{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 6px}
 .err{font-size:13px;font-weight:700;margin-top:14px;color:#5a0000}
+.chbox{width:100%;font:inherit;font-weight:700;font-size:16px;padding:14px 16px;border:2.5px solid var(--k);border-radius:14px;background:#fff;color:var(--k);outline:0;resize:none;margin-top:8px}
 .fade{animation:f .35s ease both}
 @keyframes f{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
 </style>
@@ -73,7 +74,7 @@ const API='/api/questions';
 const MODES=['mixed','college','work','couples','roast','classic'];
 const app=document.getElementById('app');
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let S={players:[],qs:[],src:'',err:'',mode:'mixed',i:0,picks:[],busy:false};
+let S={players:[],qs:[],src:'',err:'',mode:'mixed',adult:(function(){try{return localStorage.getItem('mlt_18')==='1'}catch(_){return false}})(),char:(function(){try{return localStorage.getItem('mlt_char')||''}catch(_){return ''}})(),i:0,picks:[],busy:false};
 
 function shuffle(a){a=a.slice();for(let k=a.length-1;k>0;k--){const j=Math.floor(Math.random()*(k+1));[a[k],a[j]]=[a[j],a[k]]}return a}
 function prog(){return `<div class="prog">${Array.from({length:ROUNDS},(_,k)=>`<i class="${k<=S.i?'on':''}"></i>`).join('')}</div>`}
@@ -89,9 +90,18 @@ function home(){
     <div class="tag">Questions</div>
     <div class="chips" style="margin:10px 0 4px">${MODES.map(m=>`<span class="chip ${S.mode===m?'':'off'}" onclick="setMode('${m}')">${m}</span>`).join('')}</div>
     <div class="sp"></div>
+    <div class="tag" style="margin-top:8px">AI character (optional)</div>
+    <textarea id="ch" class="chbox" rows="2" maxlength="200" placeholder="e.g. a sarcastic Lagos bus conductor" oninput="setChar(this.value)">${esc(S.char)}</textarea>
+    <div class="chips" style="margin:12px 0 0"><span class="chip ${S.adult?'':'off'}" style="text-transform:none" onclick="toggle18()">18+ mode ${S.adult?'on':'off'}</span></div>
     <button class="btn" ${n<2?'disabled':''} onclick="start()">${n<2?`Need ${2-n} more`:'Start'}</button>
   </div>`;
   document.getElementById('nm').addEventListener('keydown',e=>{if(e.key==='Enter')addP()});
+}
+function setChar(v){S.char=v;try{localStorage.setItem('mlt_char',v)}catch(_){}}
+function toggle18(){
+  if(S.adult){S.adult=false;try{localStorage.setItem('mlt_18','0')}catch(_){}return home()}
+  if(confirm('18+ mode has adult humor. Are you 18 or older?')){S.adult=true;try{localStorage.setItem('mlt_18','1')}catch(_){}}
+  home();
 }
 function setMode(m){S.mode=m;home()}
 function addP(){
@@ -101,16 +111,18 @@ function addP(){
 }
 function rmP(k){S.players.splice(k,1);home()}
 
+function getHist(){try{return JSON.parse(localStorage.getItem('mlt_hist')||'[]')}catch(_){return []}}
+function addHist(q){try{localStorage.setItem('mlt_hist',JSON.stringify(getHist().concat(q).slice(-60)))}catch(_){}}
 async function aiPrompts(){
   S.err='';
   try{
     const ctl=new AbortController();const t=setTimeout(()=>ctl.abort(),15000);
-    const res=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({theme:S.mode,n:10}),signal:ctl.signal});
+    const res=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({theme:S.mode,avoid:getHist(),character:S.char,adult:S.adult,names:S.players,n:10}),signal:ctl.signal});
     clearTimeout(t);
     const d=await res.json().catch(()=>({}));
     if(!res.ok){S.err=(d.error||'HTTP '+res.status)+(d.detail?': '+d.detail:'');return null}
     if(!Array.isArray(d.prompts)||d.prompts.length<ROUNDS){S.err='too few questions';return null}
-    return d.prompts.slice(0,ROUNDS);
+    const out=d.prompts.slice(0,ROUNDS);addHist(out);return out;
   }catch(e){S.err=e.name==='AbortError'?'timeout':'network';return null}
 }
 

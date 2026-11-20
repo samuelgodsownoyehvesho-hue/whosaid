@@ -11,14 +11,21 @@ const handler = async (req, res) => {
   const character = typeof body.character === 'string' ? body.character.replace(/\s+/g, ' ').trim().slice(0, 200) : '';
   const avoid = (Array.isArray(body.avoid) ? body.avoid : []).filter(s => typeof s === 'string').slice(-40).map(s => s.slice(0, 100));
   const nonce = Math.random().toString(36).slice(2, 10);
+  const adult = body.adult === true;
+  const names = (Array.isArray(body.names) ? body.names : []).filter(x => typeof x === 'string').map(x => x.replace(/[^\p{L}\p{N} '.-]/gu, '').trim().slice(0, 20)).filter(Boolean).slice(0, 12);
 
   const system =
-    'You write prompts for a "Most likely to" party game for friends. ' +
-    (character ? `You write them as this character: ${character}. Let their voice, humor, slang and worldview shape every prompt. ` : '') +
-    'Every prompt must start with "Most likely to", be under 90 characters, and describe a specific, unexpected, funny situation with a concrete detail, never a generic trait. ' +
-    'Make every prompt a completely different idea and sentence shape. ' +
-    'BANNED ideas, never use them: ghosting or leaving on read, group chats, texting an ex, being late, crying at ads or movies, adopting cats, being famous, zombie apocalypse, unread messages, falling asleep, getting lost with GPS, reality TV, millionaire by accident. ' +
-    'No slurs, sexual content, politics, or real people. ' +
+    'You write prompts for a "Most likely to" party game that friends play together in person. ' +
+    (character ? `You write them as this character: ${character}. Let their voice and humor shape every prompt. ` : '') +
+    'Each prompt must start with "Most likely to", be under 70 characters, and be ONE short clause. Never chain two ideas with "and". ' +
+    'Write realistic, relatable things a real person could actually do. No absurd or surreal scenarios, no random objects, no animals, no fantasy. ' +
+    'Each prompt should make a different person in the group come to mind. Vary the topics a lot. ' +
+    (adult
+      ? 'This is an 18+ adults-only game night. Be bold, cheeky and a bit filthy: dating, hookups, flirting, drinking, hangovers, jealousy, bad late-night decisions, embarrassing intimate moments, crude humor and profanity are all fine. Keep it suggestive, never explicit or graphic. ' +
+        (names.length ? `The players are: ${names.join(', ')}. Use one of these names inside a prompt when it makes it funnier. ` : '') +
+        'You may also mention famous public figures as a joke comparison, but never make sexual claims about them or accuse any real person of crimes. No minors, no slurs, no jokes that target a race, religion or group. ' +
+        'Style examples (never reuse them): "Most likely to text back at 3am after three drinks", "Most likely to get a stranger\'s number at a wedding", "Most likely to cry over someone who ghosted them once". '
+      : 'Keep it clean and friendly. No slurs, sexual content, politics, or real people. Style examples (never reuse them): "Most likely to cry during a group project", "Most likely to order for the whole table", "Most likely to forget their own wallet". ') +
     'Reply with ONLY a JSON object: {"prompts": ["...", "..."]}';
 
   const user =
