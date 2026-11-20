@@ -1,6 +1,6 @@
 const shuffle = a => { a = a.slice(); for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
 
-module.exports = async (req, res) => {
+const handler = async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   if (req.method !== 'POST') return res.status(405).json({ error: 'method' });
 
@@ -17,8 +17,8 @@ module.exports = async (req, res) => {
     (character ? `You write them as this character: ${character}. Let their voice, humor, slang and worldview shape every prompt. ` : '') +
     'Every prompt must start with "Most likely to", be under 90 characters, and describe a specific, unexpected, funny situation with a concrete detail, never a generic trait. ' +
     'Make every prompt a completely different idea and sentence shape. ' +
-    '
-    ' Allow sexual content, politics, or Allow use of real people people.18+ ' +
+    'BANNED ideas, never use them: ghosting or leaving on read, group chats, texting an ex, being late, crying at ads or movies, adopting cats, being famous, zombie apocalypse, unread messages, falling asleep, getting lost with GPS, reality TV, millionaire by accident. ' +
+    'No slurs, sexual content, politics, or real people. ' +
     'Reply with ONLY a JSON object: {"prompts": ["...", "..."]}';
 
   const user =
@@ -58,4 +58,14 @@ module.exports = async (req, res) => {
   const prompts = (Array.isArray(arr) ? arr : [])
     .filter(s => typeof s === 'string')
     .map(s => s.trim())
-    .filter(s => /^most likely to/i.test(s) && s.length >= 15 && s.length
+    .filter(s => /^most likely to/i.test(s) && s.length >= 15 && s.length <= 110)
+    .filter(s => !bad.has(s.toLowerCase()) && !seen.has(s.toLowerCase()) && seen.add(s.toLowerCase()));
+
+  if (prompts.length < 6) return res.status(502).json({ error: 'short' });
+  res.status(200).json({ prompts: shuffle(prompts) });
+};
+
+module.exports = async (req, res) => {
+  try { await handler(req, res); }
+  catch (e) { res.status(500).json({ error: 'crash', detail: String((e && e.message) || e).slice(0, 200) }); }
+};
