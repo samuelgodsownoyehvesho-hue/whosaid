@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Most Likely To - Play with friends</title>
+<meta name="description" content="Join the room, vote on your friends, see who the group picks.">
+<meta property="og:title" content="Join my Most Likely To game">
+<meta property="og:description" content="Tap the link, enter your name and vote on your friends. Takes 2 minutes.">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@500;700&display=swap" rel="stylesheet">
+<style>
+:root{--y:#FFFC00;--k:#0b0b0b}
+*{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--y);color:var(--k);font-family:Archivo,system-ui,sans-serif;font-weight:500}
+#app{min-height:100%;max-width:480px;margin:0 auto;padding:calc(24px + env(safe-area-inset-top)) 22px calc(24px + env(safe-area-inset-bottom));display:flex;flex-direction:column}
+h1,h2,.big,.who,.code{font-family:"Archivo Black",Impact,sans-serif;line-height:.95;letter-spacing:-.02em;text-transform:uppercase}
+h1{font-size:56px}h2{font-size:34px}
+.code{font-size:48px;letter-spacing:.12em;margin-top:8px}
+.who{font-size:44px;line-height:1}
+.tag{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+.top{display:flex;justify-content:space-between;margin-bottom:12px}
+.sp{flex:1}
+.btn{display:block;width:100%;border:0;background:var(--k);color:var(--y);font-family:"Archivo Black",Impact,sans-serif;font-size:18px;text-transform:uppercase;padding:18px;border-radius:14px;margin-top:10px}
+.btn:active{transform:scale(.98)}
+.btn.alt{background:transparent;color:var(--k);border:2.5px solid var(--k)}
+.btn[disabled]{opacity:.25}
+input,.chbox{width:100%;font:inherit;font-weight:700;font-size:18px;padding:16px;border:2.5px solid var(--k);border-radius:14px;background:#fff;color:var(--k);outline:0}
+.chbox{font-size:16px;resize:none;margin-top:14px}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0}
+.chip{background:var(--k);color:var(--y);padding:9px 14px;border-radius:99px;font-weight:700;font-size:15px}
+.chip.off{background:transparent;color:var(--k);border:2px solid var(--k);padding:7px 12px}
+.prog{display:flex;gap:4px;margin-bottom:22px}
+.prog i{flex:1;height:5px;border-radius:3px;background:rgba(0,0,0,.18)}
+.prog i.on{background:var(--k)}
+.q{font-size:38px;margin:6px 0 24px}
+.pick{background:#fff;border:2.5px solid var(--k);border-radius:14px;padding:17px 18px;font:inherit;font-weight:700;font-size:20px;text-align:left;margin-bottom:10px;color:var(--k);display:block;width:100%}
+.pick:active,.pick.sel{background:var(--k);color:var(--y)}
+.win{background:var(--k);color:var(--y);border-radius:18px;padding:26px 22px;margin:8px 0 18px}
+.win .tag{opacity:.7}
+.bar{display:flex;align-items:center;gap:10px;margin:8px 0;font-weight:700}
+.bar b{width:84px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:14px}
+.bar span{height:14px;background:var(--k);border-radius:7px;min-width:4px;transition:width .6s cubic-bezier(.2,.8,.2,1)}
+.bar em{font-style:normal;font-size:14px}
+.sum{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 6px}
+.li{padding:14px 0;border-bottom:2px solid rgba(0,0,0,.15)}
+.li small{display:block;font-weight:700;font-size:12px;letter-spacing:.06em;text-transform:uppercase;opacity:.65;margin-bottom:4px}
+.li b{font-family:"Archivo Black",Impact,sans-serif;font-size:24px;text-transform:uppercase}
+.note{font-size:14px;font-weight:700;opacity:.7;text-align:center;margin-top:12px}
+.err{font-size:13px;font-weight:700;margin:14px 0 4px;color:#5a0000}
+.fade{animation:f .35s ease both}
+@keyframes f{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<script>
+const PROMPTS=["Most likely to cry during a group project","Most likely to order for the whole table","Most likely to forget their own wallet","Most likely to start a business and quit in a week","Most likely to show up late to their own birthday","Most likely to get famous for something dumb","Most likely to forget everyone's birthday","Most likely to say 'I'm five minutes away' from their bed","Most likely to win an argument they started","Most likely to get lost with GPS on","Most likely to fall asleep mid-movie","Most likely to overshare with a stranger","Most likely to quit their job dramatically","Most likely to have 4,000 unread messages","Most likely to bring a speaker to the park","Most likely to be secretly the funniest","Most likely to survive a zombie apocalypse","Most likely to screenshot the chat and send it to someone else"];
+const API='/api/room';
+const app=document.getElementById('app');
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ls={get:k=>{try{return localStorage.getItem(k)}catch(_){return null}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch(_){}}};
+const shuffle=a=>{a=a.slice();for(let k=a.length-1;k>0;k--){const j=Math.floor(Math.random()*(k+1));[a[k],a[j]]=[a[j],a[k]]}return a};
+let code=(new URLSearchParams(location.search).get('r')||(location.pathname.match(/\/r\/([A-Za-z0-9]+)/)||[])[1]||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,5);
+let S={pid:code?ls.get('mlt_pid_'+code):null,data:null,sig:'',timer:null,busy:false,err:'',aiNote:''};
+let C={name:ls.get('mlt_name')||'',ai:true,adult:ls.get('mlt_18')==='1',char:ls.get('mlt_char')||'',err:''};
+
+async function api(method,body){
+  try{
+    const r=method==='GET'?await fetch(`${API}?code=${code}&pid=${S.pid||''}`,{cache:'no-store'}):await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code,pid:S.pid,...body})});
+    const d=await r.json().catch(()=>({}));
+    return{ok:r.ok,status:r.status,d};
+  }catch(_){return{ok:false,status:0,d:{error:'network'}}}
+}
+function stop(){clearInterval(S.timer);S.timer=null}
+function poll(){stop();tick();S.timer=setInterval(tick,2500)}
+async function tick(){
+  if(document.hidden||S.busy)return;
+  const r=await api('GET');
+  if(!r.ok){if(r.status===404){stop();notFound()}return}
+  const d=r.d;
+  if(!d.you){stop();ls.set('mlt_pid_'+code,'');S.pid=null;return joinScreen()}
+  const sig=JSON.stringify([d.state,d.i,d.mine,d.players,d.tally,d.rounds||'']);
+  if(sig===S.sig)return;
+  S.sig=sig;S.data=d;render();
+}
+document.addEventListener('visibilitychange',()=>{if(!document.hidden&&S.timer)tick()});
+
+function notFound(){
+  app.innerHTML=`<div class="fade" style="display:flex;flex-direction:column;flex:1"><div class="tag">Room closed</div><h2 style="margin:12px 0">That room<br>doesn't exist</h2><p>Links expire after 24 hours.</p><div class="sp"></div><a class="btn" style="text-align:center;text-decoration:none" href="/room.html">Start a new room</a></div>`;
+}
+function createScreen(){
+  app.innerHTML=`<div class="fade" style="display:flex;flex-direction:column;flex:1">
+    <div class="tag">Play online · 2-12 players</div>
+    <h1 style="margin:14px 0 10px">Most<br>Likely<br>To</h1>
+    <p style="max-width:300px;margin-bottom:22px">Create a room, share the link, everyone votes on their own phone.</p>
+    <input id="nm" maxlength="14" placeholder="Your name" value="${esc(C.name)}" oninput="C.name=this.value">
+    <div class="chips" style="margin:16px 0 0"><span class="chip ${C.ai?'':'off'}" onclick="C.ai=true;createScreen()">AI questions</span><span class="chip ${C.ai?'off':''}" onclick="C.ai=false;createScreen()">Classic</span><span class="chip ${C.adult?'':'off'}" onclick="toggle18()">18+ ${C.adult?'on':'off'}</span></div>
+    ${C.ai?`<textarea class="chbox" rows="2" maxlength="200" placeholder="AI character (optional), e.g. a sarcastic Lagos bus conductor" oninput="C.char=this.value">${esc(C.char)}</textarea>`:''}
+    <div class="sp"></div>
+    ${C.err?`<div class="err">${esc(C.err)}</div>`:''}
+    <button class="btn" onclick="createRoom()">Create room</button>
+  </div>`;
+}
+function toggle18(){
+  if(C.adult){C.adult=false;ls.set('mlt_18','0');return createScreen()}
+  if(confirm('18+ mode has adult humor. Are you 18 or older?')){C.adult=true;ls.set('mlt_18','1')}
+  createScreen();
+}
+async function getQuestions(){
+  const local=()=>shuffle(PROMPTS).slice(0,6);
+  if(!C.ai)return{qs:local(),ai:false};
+  try{
+    let hist=[];try{hist=JSON.parse(ls.get('mlt_hist')||'[]')}catch(_){}
+    const ctl=new AbortController(),t=setTimeout(()=>ctl.abort(),15000);
+    const r=await fetch('/api/questions',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({character:C.char,adult:C.adult,avoid:hist}),signal:ctl.signal});
+    clearTimeout(t);
+    const d=await r.json().catch(()=>({}));
+    if(r.ok&&Array.isArray(d.prompts)&&d.prompts.length>=6){const out=d.prompts.slice(0,6);ls.set('mlt_hist',JSON.stringify(hist.concat(out).slice(-60)));return{qs:out,ai:true}}
+    return{qs:local(),ai:false,err:(d.error||'HTTP '+r.status)+(d.detail?': '+d.detail:'')};
+  }catch(e){return{qs:local(),ai:false,err:e.name==='AbortError'?'timeout':'network'}}
+}
+async function createRoom(){
+  const name=C.name.trim();
+  if(!name){C.err='Enter your name';return createScreen()}
+  ls.set('mlt_name',name);ls.set('mlt_char',C.char);
+  app.innerHTML='<div class="fade" style="display:flex;flex-direction:column;flex:1;justify-content:center"><div class="tag">Writing your questions</div><h2 style="margin-top:12px">One sec</h2></div>';
+  const g=await getQuestions();
+  const r=await api('POST',{action:'create',name,qs:g.qs});
+  if(!r.ok){C.err='Could not create room: '+(r.d.detail||r.d.error||r.status);return createScreen()}
+  code=r.d.code;S.pid=r.d.pid;ls.set('mlt_pid_'+code,S.pid);
+  S.aiNote=C.ai&&!g.ai?'AI failed ('+g.err+'), using built-in questions':'';
+  history.replaceState(null,'','/r/'+code);
+  S.sig='';poll();
+}
+function joinScreen(){
+  app.innerHTML=`<div class="fade" style="display:flex;flex-direction:column;flex:1">
+    <div class="tag">Room ${esc(code)}</div>
+    <h1 style="margin:14px 0 10px">You're<br>invited</h1>
+    <p style="max-width:300px;margin-bottom:22px">Enter your name to join the game.</p>
+    <input id="nm" maxlength="14" placeholder="Your name" value="${esc(ls.get('mlt_name')||'')}">
+    ${S.err?`<div class="err">${esc(S.err)}</div>`:''}
+    <div class="sp"></div>
+    <button class="btn" onclick="join()">Join</button>
+  </div>`;
+}
+async function join(){
+  const name=document.getElementById('nm').value.trim();
+  if(!name){S.err='Enter your name';return joinScreen()}
+  const r=await api('POST',{action:'join',name});
+  if(!r.ok){if(r.status===404)return notFound();S.err=r.d.error==='name taken'?'That name is taken, try another':(r.d.error||'Could not join');return joinScreen()}
+  S.err='';ls.set('mlt_name',name);S.pid=r.d.pid;ls.set('mlt_pid_'+code,S.pid);S.sig='';poll();
+}
+
+const isHost=()=>S.data&&S.data.host===S.pid;
+const prog=d=>`<div class="prog">${Array.from({length:d.total},(_,k)=>`<i class="${k<=d.i?'on':''}"></i>`).join('')}</div>`;
+function render(){
+  const d=S.data;
+  if(d.state==='lobby')return lobby(d);
+  if(d.state==='voting')return voting(d);
+  if(d.state==='reveal')return reveal(d);
+  return done(d);
+}
+function lobby(d){
+  const n=d.players.length,host=isHost();
+  app.innerHTML=`<div class="fade" style="display:flex;flex-direction:column;flex:1">
+    <div class="tag">Room code</div><div class="code">${esc(code)}</div>
+    <p style="margin:10px 0 18px">${n} in the room. Share the link so friends can join.</p>
+    <div class="chips" style="margin:0 0 14px">${d.players.map(p=>`<span class="chip">${esc(p.name)}${p.id===d.host?' ★':''}</span>`).join('')}</div>
+    ${S.aiNote?`<div class="err">${esc(S.aiNote)}</div>`:''}
+    <div class="sp"></div>
+    <button class="btn alt" onclick="invite()">Share invite link</button>
+    ${host?`<button class="btn" ${n<2?'disabled':''} onclick="act('start')">${n<2?'Waiting for friends':'Start game'}</button>`:'<div class="note">Waiting for the host to start</div>'}
+  </div>`;
+}
+function voting(d){
+  const host=isHost(),got=d.players.filter(p=>p.voted).length;
+  app.innerHTML=`<div class="fade" style="display:flex;flex-direction:column;flex:1">
+    <div class="top"><span class="tag">${d.i+1} / ${d.total}</span><span class="tag">${got} / ${d.players.length} voted</span></div>
+    ${prog(d)}
+    <div class="big q">${esc(d.question)}</div>
+    <div class="tag" style="margin-bottom:12px">Who is it?</div>
+    ${d.players.filter(p=>p.id!==S.pid).map(p=>`<button class="pick ${d.mine===p.id?'sel':''}" onclick="vote('${p.id}')">${esc(p.name)}</button>`).join('')}
+    <div class="sp"></div>
+    ${d.mine?'<div class="note">Vote saved. Tap another name to change it.</div>':''}
+    ${host?`<button class="btn alt" onclick="act('reveal')">Reveal now</button>`:''}
+  </div>`;
+}
+async function vote(t){
+  S.busy=true;
+  const r=await api('POST',{action:'vote',r:S.data.i,target:t});
+  S.busy=false;
+  if(r.ok){S.data.mine=t;render()}
+  S.sig='';tick();
+}
+function reveal(d){
+  const host=isHost(),t=d.tally||{},max=Math.max(0,...Object.values(t));
+  const win=d.players.filter(p=>max>0&&(t[p.id]||0)===max);
+  const last=d.i>=d.total-1;
+  app.innerHTML=`<div class="fade" style="display:flex;flex-direction:column;flex:1">
+    ${prog(d)}
+    <div class="win"><div class="tag">${esc(d.question)}</div><div class="who" style="margin-top:14px">${win.length?win.map(p=>esc(p.name)).join(' &amp; '):'Nobody voted'}</div></div>
+    ${d.players.map(p=>`<div class="bar"><b>${esc(p.name)}</b><span style="width:0" data-w="${max?(t[p.id]||0)/max*100:0}"></span><em>${t[p.id]||0}</em></div>`).join('')}
+    <div class="sp"></div>
+    ${host?`<button class="btn" onclick="act('next')">${last?'Final results':'Next question'}</button>`:'<div class="note">Waiting for the host to continue</div>'}
+  </div>`;
+  requestAnimationFrame(()=>requestAnimationFrame(()=>document.querySelectorAll('.bar span').forEach(s=>{s.style.width=`calc((100% - 150px) * ${s.dataset.w/100})`})));
+}
+
+function done(d){
+  const host=isHost(),wins={};
+  const top=rd=>Math.max(0,...Object.values(rd.tally));
+  d.rounds.forEach(rd=>{const m=top(rd);if(m>0)Object.keys(rd.tally).forEach(id=>{if(rd.tally[id]===m)wins[id]=(wins[id]||0)+1})});
+  const order=d.players.map(p=>({p,w:wins[p.id]||0})).sort((a,b)=>b.w-a.w);
+  const wn=rd=>{const m=top(rd);return m?d.players.filter(p=>rd.tally[p.id]===m).map(p=>p.name).join(' & '):'No votes'};
+  app.innerHTML=`<div class="fade" style="display:flex;flex-direction:column;flex:1">
+    <div class="tag">Final results</div>
+    <h2 style="margin:12px 0 6px">${esc(order[0].p.name)}<br>runs this group</h2>
+    <div class="sum">${order.map(o=>`<span class="chip">${esc(o.p.name)} · ${o.w}</span>`).join('')}</div>
+    <div style="margin:8px 0 18px">${d.rounds.map(rd=>`<div class="li"><small>${esc(rd.q)}</small><b>${esc(wn(rd))}</b></div>`).join('')}</div>
+    <div class="sp"></div>
+    <button class="btn alt" onclick="shareCard()">Share to story</button>
+    ${host?`<button class="btn" onclick="again()">Play again</button>`:'<div class="note">Waiting for the host to start another round</div>'}
+  </div>`;
+}
+async function act(action,extra){
+  S.busy=true;
+  await api('POST',{action,...extra});
+  S.busy=false;S.sig='';tick();
+}
+async function again(){
+  const b=document.querySelector('.btn:not(.alt)');
+  if(b){b.textContent='Writing questions...';b.disabled=true}
+  const g=await getQuestions();
+  S.aiNote=C.ai&&!g.ai?'AI failed ('+g.err+'), using built-in questions':'';
+  await act('again',{qs:g.qs});
+}
+async function invite(){
+  const url=location.origin+'/r/'+code;
+  const text='Join my Most Likely To game. Tap the link, enter your name and vote.';
+  if(navigator.share){try{await navigator.share({title:'Most Likely To',text,url})}catch(_){}return}
+  try{await navigator.clipboard.writeText(url);alert('Link copied: '+url)}catch(_){prompt('Copy this link',url)}
+}
+function wrap(ctx,text,x,y,w,lh){
+  let line='';
+  for(const word of text.split(' ')){const t=line+word+' ';if(ctx.measureText(t).width>w&&line){ctx.fillText(line.trim(),x,y);line=word+' ';y+=lh}else line=t}
+  ctx.fillText(line.trim(),x,y);return y+lh;
+}
+async function shareCard(){
+  const d=S.data;
+  try{await document.fonts.load('70px "Archivo Black"');await document.fonts.load('700 34px Archivo')}catch(_){}
+  const c=document.createElement('canvas');c.width=1080;c.height=1920;
+  const x=c.getContext('2d');
+  x.fillStyle='#FFFC00';x.fillRect(0,0,1080,1920);
+  x.fillStyle='#0b0b0b';x.font='700 34px Archivo, sans-serif';x.fillText('THE GROUP HAS SPOKEN',90,160);
+  let y=290;
+  d.rounds.forEach(rd=>{
+    const m=Math.max(0,...Object.values(rd.tally));
+    const name=(m?d.players.filter(p=>rd.tally[p.id]===m).map(p=>p.name).join(' & '):'NO VOTES').toUpperCase();
+    x.fillStyle='#0b0b0b';x.font='700 34px Archivo, sans-serif';
+    const ny=wrap(x,rd.q.toUpperCase(),90,y,900,44);
+    let size=70;x.font=`${size}px "Archivo Black", Impact, sans-serif`;
+    while(x.measureText(name).width>900&&size>34){size-=4;x.font=`${size}px "Archivo Black", Impact, sans-serif`}
+    x.fillText(name,90,ny+34);y=ny+34+78;
+  });
+  x.fillStyle='#0b0b0b';x.font='700 30px Archivo, sans-serif';x.fillText('MOST LIKELY TO - PLAY WITH YOUR GROUP',90,1820);
+  const blob=await new Promise(r=>c.toBlob(r,'image/png'));
+  const file=new File([blob],'verdict.png',{type:'image/png'});
+  if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file]})}catch(_){}return}
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='verdict.png';a.click();
+}
+
+if(!code)createScreen();
+else if(S.pid){app.innerHTML='<div class="fade"><div class="tag">Joining...</div></div>';poll()}
+else joinScreen();
+</script>
+</body>
+</html>
