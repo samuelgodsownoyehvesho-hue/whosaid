@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Pushup Challenge - Who does more?</title>
+<meta name="description" content="Two friends, one camera each. Do pushups, the phone counts your reps, whoever does more wins.">
+<meta property="og:title" content="Pushup challenge">
+<meta property="og:description" content="Open the link, set up your camera and let's see who does more pushups.">
+<link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@500;700&display=swap" rel="stylesheet">
+<style>
+[hidden]{display:none!important}
+:root{--y:#FFFC00;--k:#0b0b0b}
+*{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--y);color:var(--k);font-family:Archivo,system-ui,sans-serif;font-weight:500}
+#app{min-height:100%;max-width:480px;margin:0 auto;padding:calc(20px + env(safe-area-inset-top)) 20px calc(24px + env(safe-area-inset-bottom));display:flex;flex-direction:column}
+#front{display:flex;flex-direction:column;flex:1}
+h1,h2,.who,.pl b{font-family:"Archivo Black",Impact,sans-serif;line-height:.95;letter-spacing:-.02em;text-transform:uppercase}
+h1{font-size:56px}h2{font-size:34px}.who{font-size:44px;line-height:1}
+.tag{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+.top{display:flex;justify-content:space-between;margin-bottom:10px}
+.sp{flex:1}
+.btn{display:block;width:100%;border:0;background:var(--k);color:var(--y);font-family:"Archivo Black",Impact,sans-serif;font-size:18px;text-transform:uppercase;padding:18px;border-radius:14px;margin-top:10px}
+.btn:active{transform:scale(.98)}
+.btn.alt{background:transparent;color:var(--k);border:2.5px solid var(--k)}
+.btn[disabled]{opacity:.25}
+input{width:100%;font:inherit;font-weight:700;font-size:18px;padding:16px;border:2.5px solid var(--k);border-radius:14px;background:#fff;color:var(--k);outline:0}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0}
+.chip{background:var(--k);color:var(--y);padding:9px 16px;border-radius:99px;font-weight:700;font-size:15px}
+.chip.off{background:transparent;color:var(--k);border:2px solid var(--k);padding:7px 14px}
+#camwrap{position:relative;background:#111;border-radius:18px;overflow:hidden;min-height:230px}
+#v{width:100%;display:block}
+#cv{position:absolute;left:0;top:0;width:100%;height:100%}
+.mir #v,.mir #cv{transform:scaleX(-1)}
+#big{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;font-family:"Archivo Black",Impact,sans-serif;font-size:120px;color:var(--y);text-shadow:0 4px 0 #000,0 0 30px rgba(0,0,0,.6);pointer-events:none}
+.camBtn{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:auto;white-space:nowrap;margin:0;padding:16px 22px}
+#status{font-size:14px;font-weight:700;margin:12px 0 2px}
+.win{background:var(--k);color:var(--y);border-radius:18px;padding:22px;margin:4px 0}
+.win .tag{opacity:.7;margin-bottom:10px}
+.pl{display:flex;justify-content:space-between;align-items:center;background:#fff;border:2.5px solid var(--k);border-radius:14px;padding:12px 16px;margin-top:10px;font-weight:700}
+.pl b{font-size:28px}
+.ck{display:flex;gap:10px;font-weight:700;font-size:14px;margin:5px 0}
+.ck i{font-style:normal;width:16px}
+#checks{margin:14px 0 4px}
+.note{font-size:14px;font-weight:700;opacity:.7;text-align:center;margin-top:12px}
+.err{font-size:13px;font-weight:700;margin:14px 0 4px;color:#5a0000}
+.fade{animation:f .35s ease both}
+@keyframes f{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<div id="app">
+<div id="front"></div>
+<div id="main" hidden>
+<div class="top"><span class="tag" id="roomTag"></span><span class="tag" id="timeTag"></span></div>
+<div id="camwrap" class="mir"><video id="v" playsinline muted autoplay></video><canvas id="cv"></canvas><div id="big"></div><button id="camBtn" class="btn camBtn" onclick="startCam()">Open camera</button></div>
+<div id="status"></div>
+<div id="board"></div>
+<div id="checks"></div>
+<div id="actions"></div>
+</div>
+</div>
+<script>
+const API='/api/push';
+const $=id=>document.getElementById(id);
+const v=$('v'),cv=$('cv');
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ls={get:k=>{try{return localStorage.getItem(k)}catch(_){return null}},set:(k,x)=>{try{localStorage.setItem(k,x)}catch(_){}}};
+let code=(new URLSearchParams(location.search).get('r')||(location.pathname.match(/\/p\/([A-Za-z0-9]+)/)||[])[1]||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,5);
+let S={pid:code?ls.get('mlt_pp_'+code):null,d:null,off:0,mine:0,sent:-1,lastSend:0,lastStart:-1};
+let F={name:ls.get('mlt_name')||'',dur:60,err:''};
+let pollT=null,uiT=null,camOn=false;
+const P={a:null,st:null,lastRep:0,okSince:0,ready:false,practice:0,c:{body:false,side:false,flat:false,straight:false}};
+const srv=()=>Date.now()+S.off;
+const me=()=>S.d&&S.d.players.find(p=>p.id===S.pid);
+const opp=()=>S.d&&S.d.players.find(p=>p.id!==S.pid);
+const playing=()=>{const d=S.d;if(!d||!d.start)return false;const e=srv()-d.start;return e>=0&&e<d.dur*1000};
+
+async function api(method,body){
+  try{
+    const t0=Date.now();
+    const r=method==='GET'?await fetch(`${API}?code=${code}&pid=${S.pid||''}`,{cache:'no-store'}):await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({code,pid:S.pid,...body})});
+    const d=await r.json().catch(()=>({}));
+    return{ok:r.ok,status:r.status,d,t0,t1:Date.now()};
+  }catch(_){return{ok:false,status:0,d:{error:'network'},t0:0,t1:0}}
+}
+function showFront(h){$('main').hidden=true;$('front').hidden=false;$('front').innerHTML='<div class="fade" style="display:flex;flex-direction:column;flex:1">'+h+'</div>'}
+function notFound(){showFront(`<div class="tag">Challenge closed</div><h2 style="margin:12px 0">That challenge<br>doesn't exist</h2><p>Links expire after 2 hours.</p><div class="sp"></div><a class="btn" style="text-align:center;text-decoration:none" href="/push.html">Start a new one</a>`)}
+function createScreen(){
+  showFront(`<div class="tag">Pushup challenge · 2 players</div>
+  <h1 style="margin:14px 0 10px">Push<br>Up</h1>
+  <p style="max-width:310px;margin-bottom:22px">Each of you opens the camera on your own phone. It counts your pushups. Whoever does more wins.</p>
+  <input id="nm" maxlength="14" placeholder="Your name" value="${esc(F.name)}" oninput="F.name=this.value">
+  <div class="tag" style="margin-top:18px">Round length</div>
+  <div class="chips" style="margin:10px 0 0">${[30,60,90].map(n=>`<span class="chip ${F.dur===n?'':'off'}" onclick="F.dur=${n};createScreen()">${n}s</span>`).join('')}</div>
+  <div class="sp"></div>${F.err?`<div class="err">${esc(F.err)}</div>`:''}
+  <button class="btn" onclick="createRoom()">Create challenge</button>`);
+}
+function joinScreen(){
+  showFront(`<div class="tag">Challenge ${esc(code)}</div>
+  <h1 style="margin:14px 0 10px">Push<br>Up</h1>
+  <p style="max-width:310px;margin-bottom:22px">You've been challenged. Enter your name to join.</p>
+  <input id="nm" maxlength="14" placeholder="Your name" value="${esc(ls.get('mlt_name')||'')}">
+  <div class="sp"></div>${F.err?`<div class="err">${esc(F.err)}</div>`:''}
+  <button class="btn" onclick="join()">Join</button>`);
+}
+async function createRoom(){
+  const name=F.name.trim();
+  if(!name){F.err='Enter your name';return createScreen()}
+  ls.set('mlt_name',name);
+  const r=await api('POST',{action:'create',name,dur:F.dur});
+  if(!r.ok){F.err='Could not create: '+(r.d.detail||r.d.error||r.status);return createScreen()}
+  code=r.d.code;S.pid=r.d.pid;ls.set('mlt_pp_'+code,S.pid);F.err='';
+  history.replaceState(null,'','/p/'+code);
+  enter();
+}
+async function join(){
+  const name=$('nm').value.trim();
+  if(!name){F.err='Enter your name';return joinScreen()}
+  const r=await api('POST',{action:'join',name});
+  if(!r.ok){if(r.status===404)return notFound();F.err=({'name taken':'That name is taken, try another','room full':'This challenge already has 2 players','game already started':'This game already started'})[r.d.error]||'Could not join';return joinScreen()}
+  F.err='';ls.set('mlt_name',name);S.pid=r.d.pid;ls.set('mlt_pp_'+code,S.pid);enter();
+}
+
+function enter(){
+  $('front').hidden=true;$('main').hidden=false;$('roomTag').textContent='Room '+code;
+  pollLoop();
+  if(!uiT)uiT=setInterval(uiTick,100);
+}
+function stopAll(){clearTimeout(pollT);clearInterval(uiT);uiT=null}
+async function pollLoop(){
+  clearTimeout(pollT);
+  if(!(document.hidden&&(!S.d||S.d.state==='lobby')))await tick();
+  const st=S.d?S.d.state:'lobby';
+  pollT=setTimeout(pollLoop,st==='play'||st==='countdown'?1000:2000);
+}
+async function tick(){
+  const r=await api('GET');
+  if(!r.ok){if(r.status===404){stopAll();notFound()}return}
+  if(!r.d.you){ls.set('mlt_pp_'+code,'');S.pid=null;stopAll();return joinScreen()}
+  S.off=r.d.now-(r.t0+r.t1)/2;
+  const d=r.d;
+  if(S.lastStart!==d.start){S.lastStart=d.start;S.mine=0;S.sent=-1}
+  S.d=d;
+  const m=me();if(m&&m.count>S.mine)S.mine=m.count;
+  renderAll();
+}
+function flush(force){
+  const t=Date.now();
+  if(S.mine===S.sent)return;
+  if(t-S.lastSend<(force?400:1000))return;
+  S.lastSend=t;S.sent=S.mine;
+  api('POST',{action:'count',n:S.mine}).then(r=>{if(!r.ok&&r.status!==409)S.sent=-1});
+}
+function uiTick(){
+  const d=S.d;if(!d)return;
+  let txt='',tt='';
+  if(d.start){
+    const e=srv()-d.start;
+    if(e<0){txt=String(Math.min(5,Math.ceil(-e/1000)));tt='Get ready'}
+    else if(e<d.dur*1000){txt=e<900?'GO':String(S.mine);tt=Math.ceil((d.dur*1000-e)/1000)+'s left';flush(false)}
+    else if(d.state!=='done'){txt=String(S.mine);tt='Time!';flush(true)}
+    else tt='Finished';
+  }
+  $('big').textContent=txt;$('timeTag').textContent=tt;
+}
+function renderAll(){
+  const d=S.d;if(!d)return;
+  renderBoard();renderActions();paintStatus();
+  $('checks').hidden=!(camOn&&d.state==='lobby');
+}
+function renderBoard(){
+  const d=S.d;if(!d)return;
+  const m=me(),o=opp();
+  const row=(p,mine)=>`<div class="pl"><span>${esc(p.name)}${mine?' (you)':''}</span><b>${d.start?(mine&&d.state!=='done'?S.mine:p.count):(p.ready?'READY':'...')}</b></div>`;
+  $('board').innerHTML=(m?row(m,true):'')+(o?row(o,false):'<div class="pl"><span>Waiting for your friend...</span><b>...</b></div>');
+}
+function renderActions(){
+  const d=S.d;if(!d)return;
+  const m=me(),o=opp();let h='';
+  if(d.state==='lobby'){
+    if(!o)h+='<button class="btn alt" onclick="invite()">Invite your friend</button>';
+    if(camOn)h+=m&&m.ready?'<button class="btn alt" onclick="setReady(false)">Ready ✓ (tap to cancel)</button>':`<button class="btn" ${P.ready?'':'disabled'} onclick="setReady(true)">I'm ready</button>`;
+    if(camOn)h+='<button class="btn alt" onclick="flip()">Flip camera</button>';
+    if(m&&m.ready&&o&&!o.ready)h+='<div class="note">Waiting for your friend to get ready</div>';
+  }else if(d.state==='done'){
+    h='<button class="btn" onclick="rematch()">Rematch</button><button class="btn alt" onclick="shareCard()">Share result</button>';
+  }
+  $('actions').innerHTML=h;
+}
+function paintStatus(){
+  const d=S.d;if(!d)return;
+  const m=me(),o=opp();let h='';
+  if(d.state==='lobby')h=!camOn?'Prop your phone on the floor so the camera sees you from the side, about 2 meters away. Then tap Open camera.':(P.practice?'Tracking works. Practice reps: '+P.practice:'Get in plank, side-on to the camera. Do one practice rep to test tracking.');
+  else if(d.state==='countdown')h='Get in position';
+  else if(d.state==='play')h='Go go go!';
+  else if(m&&o){const a=m.count,b=o.count;h=`<div class="win"><div class="tag">Final · ${a} vs ${b}</div><div class="who">${a>b?'You win':a<b?esc(o.name)+' wins':'Tie'}</div></div>`}
+  $('status').innerHTML=h;
+}
+async function setReady(on){await api('POST',{action:'ready',on});tick()}
+async function rematch(){await api('POST',{action:'rematch'});tick()}
+
+const MODEL='https://storage.googleapis.com/mediapipe-models/pose_landmarker/pose_landmarker_lite/float16/1/pose_landmarker_lite.task';
+const VER='0.10.14';
+let LM=null,stream=null,facing='user',lastT=-1;
+async function loadModel(){
+  if(LM)return;
+  const base='https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@'+VER;
+  const mod=await import(base+'/vision_bundle.mjs');
+  const vision=await mod.FilesetResolver.forVisionTasks(base+'/wasm');
+  const mk=dg=>mod.PoseLandmarker.createFromOptions(vision,{baseOptions:{modelAssetPath:MODEL,delegate:dg},runningMode:'VIDEO',numPoses:1});
+  try{LM=await mk('GPU')}catch(_){LM=await mk('CPU')}
+}
+async function openStream(){
+  if(stream)stream.getTracks().forEach(t=>t.stop());
+  stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:facing,width:{ideal:640},height:{ideal:480}},audio:false});
+  $('camwrap').classList.toggle('mir',facing==='user');
+  v.srcObject=stream;await v.play();
+}
+async function startCam(){
+  const b=$('camBtn');b.disabled=true;b.textContent='Opening...';
+  try{await openStream()}catch(e){
+    b.disabled=false;b.textContent='Open camera';
+    $('status').textContent=e&&e.name==='NotAllowedError'?'Camera blocked. Allow camera access for this site in your browser settings, then try again.':'Could not open the camera: '+(e&&e.message||e);
+    return;
+  }
+  b.textContent='Loading body tracker...';
+  try{await loadModel()}catch(e){
+    b.disabled=false;b.textContent='Retry tracker';
+    $('status').textContent='Could not load the body tracker: '+(e&&e.message||e);
+    return;
+  }
+  b.hidden=true;camOn=true;
+  try{await navigator.wakeLock.request('screen')}catch(_){}
+  loop();renderAll();
+}
+async function flip(){facing=facing==='user'?'environment':'user';try{await openStream()}catch(_){}}
+function loop(){
+  if(LM&&v.readyState>=2&&v.currentTime!==lastT){
+    lastT=v.currentTime;
+    if(cv.width!==v.videoWidth){cv.width=v.videoWidth;cv.height=v.videoHeight}
+    let res=null;try{res=LM.detectForVideo(v,performance.now())}catch(_){}
+    handle(res);
+  }
+  requestAnimationFrame(loop);
+}
+
+const EDGES=[[11,13],[13,15],[12,14],[14,16],[11,12],[11,23],[12,24],[23,24],[23,25],[25,27],[24,26],[26,28]];
+function drawPose(ctx,lm,W,H){
+  ctx.lineWidth=Math.max(3,W/160);ctx.strokeStyle='#FFFC00';ctx.fillStyle='#0b0b0b';
+  EDGES.forEach(([i,j])=>{if((lm[i].visibility||0)>.4&&(lm[j].visibility||0)>.4){ctx.beginPath();ctx.moveTo(lm[i].x*W,lm[i].y*H);ctx.lineTo(lm[j].x*W,lm[j].y*H);ctx.stroke()}});
+  [11,12,13,14,15,16,23,24,25,26,27,28].forEach(i=>{if((lm[i].visibility||0)>.4){ctx.beginPath();ctx.arc(lm[i].x*W,lm[i].y*H,ctx.lineWidth*1.4,0,7);ctx.fill();ctx.stroke()}});
+}
+function ang(a,b,c){
+  const x1=a.x-b.x,y1=a.y-b.y,x2=c.x-b.x,y2=c.y-b.y;
+  const m=Math.hypot(x1,y1)*Math.hypot(x2,y2);
+  return m?Math.acos(Math.max(-1,Math.min(1,(x1*x2+y1*y2)/m)))*180/Math.PI:180;
+}
+function onRep(){
+  if(playing()){S.mine++;renderBoard();$('big').textContent=String(S.mine)}
+  else if(!S.d||!S.d.start){P.practice++;paintStatus()}
+}
+function step(a){
+  const t=performance.now();
+  if(a>145){if(P.st==='down'&&t-P.lastRep>450){P.lastRep=t;onRep()}P.st='up'}
+  else if(a<110&&P.st==='up')P.st='down';
+}
+function handle(res){
+  const ctx=cv.getContext('2d'),W=cv.width,H=cv.height;
+  ctx.clearRect(0,0,W,H);
+  const lm=res&&res.landmarks&&res.landmarks[0];
+  const c=P.c;c.body=!!lm;c.side=c.flat=c.straight=false;
+  if(lm){
+    drawPose(ctx,lm,W,H);
+    const vis=i=>lm[i].visibility||0;
+    const L=[11,13,15,23,25,27],R=[12,14,16,24,26,28];
+    const sc=ids=>ids.reduce((s,i)=>s+vis(i),0);
+    const ids=sc(L)>=sc(R)?L:R;
+    const [s,e,w,h,k,a]=ids.map(i=>({x:lm[i].x*W,y:lm[i].y*H}));
+    c.side=Math.min(vis(ids[0]),vis(ids[1]),vis(ids[2]),vis(ids[3]))>0.5;
+    if(c.side){
+      const far=vis(ids[5])>0.3?a:(vis(ids[4])>0.3?k:h);
+      const t=Math.abs(Math.atan2(far.y-s.y,far.x-s.x)*180/Math.PI),tilt=Math.min(t,180-t);
+      c.flat=tilt<35;
+      const A=ang(s,e,w);P.a=P.a==null?A:P.a*.5+A*.5;
+      c.straight=P.a>145;
+      if(c.flat)step(P.a);
+    }
+  }
+  if(!c.side)P.a=null;
+  const now=performance.now();
+  if(c.body&&c.side&&c.flat&&c.straight){if(!P.okSince)P.okSince=now}else P.okSince=0;
+  P.ready=!!P.okSince&&now-P.okSince>800;
+  paintChecks();
+}
+let ckSig='';
+function paintChecks(){
+  const c=P.c,items=[['body','Body detected'],['side','Side view, arm and hip visible'],['flat','Body flat like a plank'],['straight','Arms straight']];
+  const sig=items.map(([k])=>c[k]?1:0).join('')+(P.ready?1:0);
+  if(sig===ckSig)return;ckSig=sig;
+  $('checks').innerHTML=items.map(([k,l])=>`<div class="ck"><i>${c[k]?'✓':'·'}</i>${l}</div>`).join('');
+  renderActions();
+}
+
+async function invite(){
+  const url=location.origin+'/p/'+code;
+  const text="Pushup challenge! Open the link, set up your camera and let's see who does more.";
+  if(navigator.share){try{await navigator.share({title:'Pushup challenge',text,url})}catch(_){}return}
+  try{await navigator.clipboard.writeText(url);alert('Link copied: '+url)}catch(_){prompt('Copy this link',url)}
+}
+async function shareCard(){
+  const d=S.d,m=me(),o=opp();if(!d||!m||!o)return;
+  try{await document.fonts.load('70px "Archivo Black"')}catch(_){}
+  const c=document.createElement('canvas');c.width=1080;c.height=1350;
+  const x=c.getContext('2d');
+  x.fillStyle='#FFFC00';x.fillRect(0,0,1080,1350);x.fillStyle='#0b0b0b';
+  x.font='700 36px Archivo, sans-serif';x.fillText('PUSHUP CHALLENGE · '+d.dur+' SECONDS',90,150);
+  const win=m.count===o.count?'TIE':(m.count>o.count?m:o).name.toUpperCase()+' WINS';
+  let size=110;x.font=size+'px "Archivo Black", Impact, sans-serif';
+  while(x.measureText(win).width>900&&size>40){size-=4;x.font=size+'px "Archivo Black", Impact, sans-serif'}
+  x.fillText(win,90,380);
+  [m,o].forEach((p,i)=>{
+    x.font='700 44px Archivo, sans-serif';x.fillText(p.name.toUpperCase(),90,600+i*300);
+    x.font='180px "Archivo Black", Impact, sans-serif';x.fillText(String(p.count),90,770+i*300);
+  });
+  x.font='700 30px Archivo, sans-serif';x.fillText('WHOSAID.VERCEL.APP/PUSH.HTML',90,1280);
+  const blob=await new Promise(r=>c.toBlob(r,'image/png'));
+  const file=new File([blob],'pushup.png',{type:'image/png'});
+  if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file]})}catch(_){}return}
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='pushup.png';a.click();
+}
+if(!code)createScreen();
+else if(S.pid)enter();
+else joinScreen();
+</script>
+</body>
+</html>

@@ -1,1 +1,1 @@
-{ "rewrites": [{ "source": "/r/:code", "destination": "/room.html" }] }
+{ "rewrites": [{ "source": "/r/:code", "destination": "/room.html" }, { "source": "/p/:code", "destination": "/push.html" }] }
