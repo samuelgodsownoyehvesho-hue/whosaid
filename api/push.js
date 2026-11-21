@@ -3,6 +3,7 @@ const TOKEN = process.env.UPSTASH_REDIS_REST_TOKEN || process.env.KV_REST_API_TO
 const ALPHA = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
 const TTL = 7200;
 const GRACE = 3000;
+const RATES = { easy: 0.35, medium: 0.55, hard: 0.8 };
 const rid = n => Array.from({ length: n }, () => ALPHA[Math.floor(Math.random() * ALPHA.length)]).join('');
 const cleanName = s => String(s || '').replace(/[^\p{L}\p{N} '.-]/gu, '').trim().slice(0, 14);
 
@@ -33,13 +34,22 @@ function phase(room, t) {
   return e < 0 ? 'countdown' : e < room.meta.dur * 1000 + GRACE ? 'play' : 'done';
 }
 
+function botCount(room, t) {
+  const b = room.meta.bot;
+  if (!b || !room.start) return 0;
+  const dur = room.meta.dur;
+  const e = Math.max(0, Math.min(t - room.start, dur * 1000)) / 1000;
+  const k = 1 + ((room.start % 97) / 97 - 0.5) * 0.16;
+  return Math.floor(b.rate * k * (e - 0.125 * e * e / dur));
+}
+
 function view(room, pid) {
   const t = Date.now();
   const ids = Object.keys(room.players).sort((a, b) => room.players[a].localeCompare(room.players[b]));
   return {
     now: t, state: phase(room, t), start: room.start, dur: room.meta.dur,
     you: !!(pid && room.players[pid]),
-    players: ids.map(id => ({ id, name: room.players[id], ready: !!room.ready[id], count: parseInt(room.counts[id] || '0') || 0 }))
+    players: ids.map(id => ({ id, name: room.players[id], ready: !!room.ready[id], count: parseInt(room.counts[id] || '0') || 0 })).concat(room.meta.bot ? [{ id: 'BOT', name: 'Bot (' + room.meta.bot.level + ')', ready: true, count: botCount(room, t) }] : [])
   };
 }
 
@@ -58,11 +68,12 @@ module.exports = async (req, res) => {
     if (a === 'create') {
       const name = cleanName(q.name);
       const dur = [30, 60, 90].includes(parseInt(q.dur)) ? parseInt(q.dur) : 60;
+      const bot = RATES[q.bot] ? { level: String(q.bot), rate: RATES[q.bot] } : null;
       if (!name) return bad(400, 'name');
       const me = rid(8);
       for (let t = 0; t < 6; t++) {
         const c = rid(5), k = 'push:' + c;
-        const [made] = await rx([['HSETNX', k, 'meta', JSON.stringify({ dur })]]);
+        const [made] = await rx([['HSETNX', k, 'meta', JSON.stringify(bot ? { dur, bot } : { dur })]]);
         if (made === 1) { await rx([['HSET', k, 'p:' + me, name], ['EXPIRE', k, TTL]]); return res.status(200).json({ code: c, pid: me }); }
       }
       return bad(500, 'code');
@@ -77,6 +88,7 @@ module.exports = async (req, res) => {
       const name = cleanName(q.name);
       if (!name) return bad(400, 'name');
       if (room.start) return bad(409, 'game already started');
+      if (room.meta.bot) return bad(409, 'room full');
       const ids = Object.keys(room.players);
       if (ids.length >= 2) return bad(409, 'room full');
       if (ids.some(id => room.players[id].toLowerCase() === name.toLowerCase())) return bad(409, 'name taken');
@@ -91,7 +103,7 @@ module.exports = async (req, res) => {
       await rx([q.on === false ? ['HDEL', key, 'r:' + pid] : ['HSET', key, 'r:' + pid, '1']]);
       const r2 = await load(code);
       const ids = Object.keys(r2.players);
-      if (ids.length === 2 && ids.every(id => r2.ready[id])) await rx([['HSETNX', key, 'start', String(Date.now() + 5000)], ['EXPIRE', key, TTL]]);
+      if (ids.length === (r2.meta.bot ? 1 : 2) && ids.every(id => r2.ready[id])) await rx([['HSETNX', key, 'start', String(Date.now() + 5000)], ['EXPIRE', key, TTL]]);
       return ok();
     }
     if (a === 'count') {

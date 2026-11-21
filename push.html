@@ -68,7 +68,7 @@ const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'
 const ls={get:k=>{try{return localStorage.getItem(k)}catch(_){return null}},set:(k,x)=>{try{localStorage.setItem(k,x)}catch(_){}}};
 let code=(new URLSearchParams(location.search).get('r')||(location.pathname.match(/\/p\/([A-Za-z0-9]+)/)||[])[1]||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,5);
 let S={pid:code?ls.get('mlt_pp_'+code):null,d:null,off:0,mine:0,sent:-1,lastSend:0,lastStart:-1};
-let F={name:ls.get('mlt_name')||'',dur:60,err:''};
+let F={name:ls.get('mlt_name')||'',dur:60,err:'',opp:'friend'};
 let pollT=null,uiT=null,camOn=false;
 const P={a:null,st:null,lastRep:0,okSince:0,ready:false,practice:0,c:{body:false,side:false,flat:false,straight:false}};
 const srv=()=>Date.now()+S.off;
@@ -91,6 +91,8 @@ function createScreen(){
   <h1 style="margin:14px 0 10px">Push<br>Up</h1>
   <p style="max-width:310px;margin-bottom:22px">Each of you opens the camera on your own phone. It counts your pushups. Whoever does more wins.</p>
   <input id="nm" maxlength="14" placeholder="Your name" value="${esc(F.name)}" oninput="F.name=this.value">
+  <div class="tag" style="margin-top:18px">Play against</div>
+  <div class="chips" style="margin:10px 0 0">${['friend','easy','medium','hard'].map(o=>`<span class="chip ${F.opp===o?'':'off'}" onclick="F.opp='${o}';createScreen()">${o==='friend'?'A friend':'Bot · '+o}</span>`).join('')}</div>
   <div class="tag" style="margin-top:18px">Round length</div>
   <div class="chips" style="margin:10px 0 0">${[30,60,90].map(n=>`<span class="chip ${F.dur===n?'':'off'}" onclick="F.dur=${n};createScreen()">${n}s</span>`).join('')}</div>
   <div class="sp"></div>${F.err?`<div class="err">${esc(F.err)}</div>`:''}
@@ -108,7 +110,7 @@ async function createRoom(){
   const name=F.name.trim();
   if(!name){F.err='Enter your name';return createScreen()}
   ls.set('mlt_name',name);
-  const r=await api('POST',{action:'create',name,dur:F.dur});
+  const r=await api('POST',{action:'create',name,dur:F.dur,bot:F.opp==='friend'?'':F.opp});
   if(!r.ok){F.err='Could not create: '+(r.d.detail||r.d.error||r.status);return createScreen()}
   code=r.d.code;S.pid=r.d.pid;ls.set('mlt_pp_'+code,S.pid);F.err='';
   history.replaceState(null,'','/p/'+code);
