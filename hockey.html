@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover,user-scalable=no">
 <meta name="theme-color" content="#050403">
-<title>Air Hockey</title>
-<meta name="description" content="Neon air hockey. Beat the bot or play a friend live, with a mallet you draw yourself.">
+
+
 <link href="https://fonts.googleapis.com/css2?family=Big+Shoulders+Display:wght@700;800;900&family=Instrument+Sans:wght@400;600&display=swap" rel="stylesheet">
 <style>
 [hidden]{display:none!important}
@@ -32,6 +32,20 @@ h2{font-weight:900;font-size:clamp(60px,20vw,100px);line-height:.9}
 #pause{position:fixed;top:calc(12px + env(safe-area-inset-top));right:14px;width:44px;height:44px;border-radius:50%;border:2px solid var(--ember);background:transparent;display:flex;gap:5px;align-items:center;justify-content:center;box-shadow:0 0 12px rgba(255,169,39,.4)}
 #pause i{width:3px;height:14px;background:var(--ember);border-radius:2px}
 </style>
+<title>Air Hockey Online: Play Friends or a Bot, Draw Your Mallet</title>
+<meta name="description" content="Play neon air hockey online. Beat the bot, challenge a friend with a shared link and draw your own mallet. Free, works on your phone.">
+<link rel="canonical" href="https://whosaid.vercel.app/hockey.html">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<meta name="robots" content="index,follow,max-image-preview:large">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="Whosaid">
+<meta property="og:title" content="Air Hockey Online: Play Friends or a Bot, Draw Your Mallet">
+<meta property="og:description" content="Play neon air hockey online. Beat the bot, challenge a friend with a shared link and draw your own mallet. Free, works on your phone.">
+<meta property="og:url" content="https://whosaid.vercel.app/hockey.html">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="Air Hockey Online: Play Friends or a Bot, Draw Your Mallet">
+<meta name="twitter:description" content="Play neon air hockey online. Beat the bot, challenge a friend with a shared link and draw your own mallet. Free, works on your phone.">
+<script type="application/ld+json">{"@context": "https://schema.org", "@graph": [{"@type": "WebApplication", "name": "Neon Air Hockey", "url": "https://whosaid.vercel.app/hockey.html", "description": "Play neon air hockey online. Beat the bot, challenge a friend with a shared link and draw your own mallet. Free, works on your phone.", "applicationCategory": "GameApplication", "operatingSystem": "Any", "browserRequirements": "Requires JavaScript", "offers": {"@type": "Offer", "price": "0", "priceCurrency": "USD"}}]}</script>
 </head>
 <body>
 <canvas id="c"></canvas>
