@@ -12,6 +12,7 @@ const handler = async (req, res) => {
   const avoid = (Array.isArray(body.avoid) ? body.avoid : []).filter(s => typeof s === 'string').slice(-40).map(s => s.slice(0, 100));
   const nonce = Math.random().toString(36).slice(2, 10);
   const adult = body.adult === true;
+  const lang = body.lang === 'fa' ? 'fa' : 'en';
   const names = (Array.isArray(body.names) ? body.names : []).filter(x => typeof x === 'string').map(x => x.replace(/[^\p{L}\p{N} '.-]/gu, '').trim().slice(0, 20)).filter(Boolean).slice(0, 12);
 
   const system =
@@ -33,6 +34,17 @@ const handler = async (req, res) => {
     (avoid.length ? `\n\nDo not repeat or closely resemble any of these earlier prompts:\n- ${avoid.join('\n- ')}` : '') +
     `\n\nRandom seed: ${nonce}`;
 
+  const faSystem =
+    'You write prompts for a Persian-language party game called "کی گفته" that friends play together in person. ' +
+    'Each prompt must be ONE short colloquial Tehrani Persian question ending in "؟", under 55 characters, asking which of the group fits a trait. ' +
+    'Use natural everyday spoken Persian, not formal written Persian. No English words unless they are normal slang. ' +
+    'Write realistic, relatable things a real person could actually do. Vary the topics a lot. ' +
+    'Reply with ONLY a JSON object: {"prompts": ["...", "..."]}';
+  const finalSystem = lang === 'fa' ? faSystem : system;
+  const finalUser = lang === 'fa'
+    ? ('دقیقا ۸ سوال بنویس.' + (avoid.length ? '\n\nاین سوال‌ها را تکرار نکن:\n- ' + avoid.join('\n- ') : '') + `\n\nRandom seed: ${nonce}`)
+    : user;
+
   const models = [...new Set([process.env.GROQ_MODEL, 'openai/gpt-oss-120b', 'openai/gpt-oss-20b'].filter(Boolean))];
   let content = null, lastErr = '';
   for (const model of models) {
@@ -47,7 +59,7 @@ const handler = async (req, res) => {
           max_completion_tokens: 2000,
           reasoning_effort: 'low',
           response_format: { type: 'json_object' },
-          messages: [{ role: 'system', content: system }, { role: 'user', content: user }]
+          messages: [{ role: 'system', content: finalSystem }, { role: 'user', content: finalUser }]
         })
       });
       const d = await r.json();
@@ -65,7 +77,7 @@ const handler = async (req, res) => {
   const prompts = (Array.isArray(arr) ? arr : [])
     .filter(s => typeof s === 'string')
     .map(s => s.trim())
-    .filter(s => /^most likely to/i.test(s) && s.length >= 15 && s.length <= 110)
+    .filter(s => (lang === 'fa' ? /[\u0600-\u06FF]/.test(s) && s.length <= 120 : /^most likely to/i.test(s) && s.length >= 15 && s.length <= 110))
     .filter(s => !bad.has(s.toLowerCase()) && !seen.has(s.toLowerCase()) && seen.add(s.toLowerCase()));
 
   if (prompts.length < 6) return res.status(502).json({ error: 'short' });

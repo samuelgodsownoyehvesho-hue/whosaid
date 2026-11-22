@@ -1,3 +1,4 @@
 User-agent: *
 Allow: /
+Disallow: /r/
 Sitemap: https://whosaid.vercel.app/sitemap.xml

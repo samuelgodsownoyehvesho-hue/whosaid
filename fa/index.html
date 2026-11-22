@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>کی گفته — بازی دورهمی آنلاین رایگان</title>
+<meta name="description" content="کی گفته یک بازی دورهمی آنلاین و رایگان است. سوال را بخوانید، بحث کنید، روی اسم طرف بزنید. شش دور، سوالات هوش مصنوعی و کارت نتیجه برای استوری.">
+<link rel="canonical" href="https://whosaid.vercel.app/fa/">
+<link rel="alternate" hreflang="en" href="https://whosaid.vercel.app/">
+<link rel="alternate" hreflang="fa" href="https://whosaid.vercel.app/fa/">
+<link rel="alternate" hreflang="x-default" href="https://whosaid.vercel.app/">
+<meta property="og:title" content="کی گفته — بازی دورهمی">
+<meta property="og:description" content="بازی دورهمی رایگان. سوالات هوش مصنوعی و کارت نتیجه.">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://whosaid.vercel.app/fa/">
+<meta property="og:site_name" content="کی گفته">
+<meta property="og:locale" content="fa_IR">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700;900&display=swap" rel="stylesheet">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"کی گفته","url":"https://whosaid.vercel.app/fa/","applicationCategory":"GameApplication","operatingSystem":"Any","inLanguage":"fa","offers":{"@type":"Offer","price":"0","priceCurrency":"USD"}}
+</script>
+<style>
+:root{--y:#FFFC00;--k:#0b0b0b}
+*{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent}
+html,body{height:100%;background:var(--y);color:var(--k);font-family:Vazirmatn,system-ui,sans-serif;font-weight:500}
+#app{min-height:100%;max-width:480px;margin:0 auto;padding:calc(24px + env(safe-area-inset-top)) 22px calc(24px + env(safe-area-inset-bottom));display:flex;flex-direction:column}
+h1,h2,.big{font-weight:900;line-height:1.15;letter-spacing:0}
+h1{font-size:52px}
+h2{font-size:30px}
+.tag{font-size:12px;font-weight:700}
+.top{display:flex;justify-content:space-between;margin-bottom:12px}
+.sp{flex:1}
+.btn{display:block;width:100%;border:0;background:var(--k);color:var(--y);font-family:inherit;font-weight:900;font-size:17px;padding:18px;border-radius:14px;margin-top:10px;cursor:pointer}
+.btn:active{transform:scale(.98)}
+.btn.alt{background:transparent;color:var(--k);border:2.5px solid var(--k)}
+.btn[disabled]{opacity:.25}
+.row{display:flex;gap:10px}
+input{flex:1;min-width:0;font-family:inherit;font-weight:700;font-size:17px;padding:16px;border:2.5px solid var(--k);border-radius:14px;background:#fff;color:var(--k);outline:0}
+.add{width:64px;margin:0;font-size:26px;padding:0}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0}
+.chip{background:var(--k);color:var(--y);padding:9px 14px;border-radius:99px;font-weight:700;font-size:14px;cursor:pointer}
+.chip.off{background:transparent;color:var(--k);border:2px solid var(--k);padding:7px 12px}
+.prog{display:flex;gap:4px;margin-bottom:22px}
+.prog i{flex:1;height:5px;border-radius:3px;background:rgba(0,0,0,.18)}
+.prog i.on{background:var(--k)}
+.q{font-size:32px;margin:6px 0 24px;line-height:1.35}
+.pick{background:#fff;border:2.5px solid var(--k);border-radius:14px;padding:17px 18px;font-family:inherit;font-weight:700;font-size:19px;text-align:right;margin-bottom:10px;color:var(--k);display:block;width:100%;cursor:pointer}
+.pick:active,.pick.sel{background:var(--k);color:var(--y)}
+.li{padding:14px 0;border-bottom:2px solid rgba(0,0,0,.15)}
+.li small{display:block;font-weight:700;font-size:12px;opacity:.65;margin-bottom:4px}
+.li b{font-size:20px}
+.sum{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 6px}
+.fade{animation:f .35s ease both}
+@keyframes f{0%{opacity:0;transform:translateY(10px)}100%{opacity:1;transform:none}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<noscript><h1>کی گفته</h1><p>یک بازی دورهمی آنلاین و رایگان. سوال را بلند بخوانید، بحث کنید و روی اسم طرف بزنید. شش دور سوال، بعد کارت نتیجه برای استوری. برای بازی جاوااسکریپت را روشن کنید.</p></noscript>
+<script>
+const PROMPTS=["کی از همه زودتر گریه‌ش می‌گیره؟","کی همیشه دیر می‌رسه؟","کی تو جمع همه رو می‌خندونه؟","کی هیچ‌وقت پول خرد نداره؟","کی از همه بیشتر تو گوشی‌شه؟","کی تا صبح بیداره؟","کی تو سفر گم می‌شه؟","کی همه‌چی رو لو می‌ده؟","کی از همه بدقلق‌تره؟","کی همیشه بهونه می‌آره؟","کی از همه خوش‌لباس‌تره؟","کی هیچ‌وقت جواب پیام نمی‌ده؟","کی همه رو تو دردسر می‌ندازه؟","کی از همه رک‌تره؟","کی تو مهمونی از همه زودتر می‌خوابه؟","کی از همه حسودتره؟","کی از همه بیشتر خرج می‌کنه؟","کی همه رو مسخره می‌کنه؟","کی از همه ترسوتره؟","کی از همه بیشتر قهر می‌کنه؟","کی همیشه آخرین نفره که می‌فهمه؟","کی از همه زرنگ‌تره؟"];
+const ROUNDS=6,API='/api/questions';
+const MODES=[['mixed','ترکیبی'],['college','دانشجویی'],['work','کاری'],['couples','عاشقانه'],['roast','تیکه‌انداز'],['classic','کلاسیک']];
+const app=document.getElementById('app');
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const ls={g:k=>{try{return localStorage.getItem(k)}catch(_){return null}},s:(k,v)=>{try{localStorage.setItem(k,v)}catch(_){}}};
+const shuffle=a=>{a=a.slice();for(let k=a.length-1;k>0;k--){const j=Math.floor(Math.random()*(k+1));[a[k],a[j]]=[a[j],a[k]]}return a};
+let S={players:[],qs:[],src:'',mode:'mixed',i:0,picks:[],busy:false};
+function prog(){return '<div class="prog">'+Array.from({length:ROUNDS},(_,k)=>'<i class="'+(k<=S.i?'on':'')+'"></i>').join('')+'</div>'}
+function home(){
+  const n=S.players.length;
+  app.innerHTML='<div class="fade" style="display:flex;flex-direction:column;flex:1">'
+   +'<div class="tag">بازی دورهمی · ۲ نفر یا بیشتر</div>'
+   +'<h1 style="margin:14px 0 10px">کی گفته</h1>'
+   +'<p style="max-width:320px;margin-bottom:26px">سوال را بلند بخوانید. بحث کنید. روی اسم طرف بزنید.</p>'
+   +'<div class="row"><input id="nm" maxlength="14" placeholder="اسم بازیکن" autocomplete="off"><button class="btn add" onclick="addP()">+</button></div>'
+   +'<div class="chips">'+S.players.map((p,k)=>'<span class="chip" onclick="rmP('+k+')">'+esc(p)+' ×</span>').join('')+'</div>'
+   +'<div class="tag">موضوع سوالات</div>'
+   +'<div class="chips" style="margin:10px 0 4px">'+MODES.map(m=>'<span class="chip '+(S.mode===m[0]?'':'off')+'" onclick="setMode(\''+m[0]+'\')">'+m[1]+'</span>').join('')+'</div>'
+   +'<div class="sp"></div>'
+   +'<div class="chips" style="margin:14px 0 0"><a class="chip off" style="text-decoration:none" href="../">English</a></div>'
+   +'<button class="btn" '+(n<2?'disabled':'')+' onclick="start()">'+(n<2?(2-n)+' نفر دیگر لازم است':'شروع')+'</button>'
+   +'</div>';
+  const i=document.getElementById('nm');if(i)i.addEventListener('keydown',e=>{if(e.key==='Enter')addP()});
+}
+function setMode(m){S.mode=m;home()}
+function addP(){const i=document.getElementById('nm');const v=i.value.trim();if(!v||S.players.length>=12||S.players.some(p=>p.toLowerCase()===v.toLowerCase()))return;S.players.push(v);home()}
+function rmP(k){S.players.splice(k,1);home()}
+function hist(){try{return JSON.parse(ls.g('fa_hist')||'[]')}catch(_){return []}}
+function addHist(q){ls.s('fa_hist',JSON.stringify(hist().concat(q).slice(-60)))}
+async function aiPrompts(){
+  try{
+    const ctl=new AbortController(),t=setTimeout(()=>ctl.abort(),15000);
+    const r=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({theme:S.mode,avoid:hist(),character:'',adult:false,names:S.players,n:8,lang:'fa'}),signal:ctl.signal});
+    clearTimeout(t);
+    const d=await r.json().catch(()=>({}));
+    if(!r.ok||!Array.isArray(d.prompts)||d.prompts.length<ROUNDS)return null;
+    const out=d.prompts.slice(0,ROUNDS);
+    if(!/[\u0600-\u06FF]/.test(out.join(' ')))return null;
+    addHist(out);return out;
+  }catch(_){return null}
+}
+async function start(){
+  let q=null;
+  if(S.mode!=='classic'){
+    app.innerHTML='<div class="fade" style="display:flex;flex-direction:column;flex:1;justify-content:center"><div class="tag">در حال نوشتن سوال‌ها</div><h2 style="margin-top:12px">یک لحظه</h2></div>';
+    q=await aiPrompts();
+  }
+  S.src=q?'ai':'local';
+  S.qs=q||shuffle(PROMPTS).slice(0,ROUNDS);
+  S.i=0;S.picks=[];S.busy=false;ask();
+}
+function ask(){
+  app.innerHTML='<div class="fade" style="display:flex;flex-direction:column;flex:1">'
+   +'<div class="top"><span class="tag">'+(S.i+1)+' / '+ROUNDS+'</span><span class="tag">'+(S.src==='ai'?'سوالات هوش مصنوعی':'سوالات آماده')+'</span></div>'
+   +prog()
+   +'<div class="big q">'+esc(S.qs[S.i])+'</div>'
+   +'<div class="tag" style="margin-bottom:12px">کیه؟</div>'
+   +S.players.map((p,k)=>'<button class="pick" id="p'+k+'" onclick="pick('+k+')">'+esc(p)+'</button>').join('')
+   +'</div>';
+}
+function pick(k){if(S.busy)return;S.busy=true;S.picks.push(k);document.getElementById('p'+k).classList.add('sel');setTimeout(()=>{S.i++;S.busy=false;S.i>=ROUNDS?results():ask()},450)}
+function results(){
+  const c=S.players.map((_,k)=>S.picks.filter(x=>x===k).length);
+  const order=S.players.map((p,k)=>({p,c:c[k]})).filter(o=>o.c).sort((a,b)=>b.c-a.c);
+  app.innerHTML='<div class="fade" style="display:flex;flex-direction:column;flex:1">'
+   +'<div class="tag">۶ / ۶ · تمام</div>'
+   +'<h2 style="margin:12px 0 4px">گروه رای داد</h2>'
+   +'<div class="sum">'+order.map(o=>'<span class="chip">'+esc(o.p)+' · '+o.c+'</span>').join('')+'</div>'
+   +'<div style="margin:8px 0 18px">'+S.qs.map((q,n)=>'<div class="li"><small>'+esc(q)+'</small><b>'+esc(S.players[S.picks[n]])+'</b></div>').join('')+'</div>'
+   +'<div class="sp"></div>'
+   +'<button class="btn alt" onclick="share()">اشتراک در استوری</button>'
+   +'<button class="btn" onclick="start()">دوباره</button>'
+   +'<button class="btn alt" onclick="home()">تغییر بازیکن‌ها</button>'
+   +'</div>';
+}
+async function share(){
+  try{await document.fonts.load('70px Vazirmatn')}catch(_){}
+  const c=document.createElement('canvas');c.width=1080;c.height=1920;
+  const x=c.getContext('2d');x.direction='rtl';x.textAlign='right';
+  x.fillStyle='#FFFC00';x.fillRect(0,0,1080,1920);
+  x.fillStyle='#0b0b0b';x.font='700 34px Vazirmatn,sans-serif';x.fillText('گروه رای داد',990,160);
+  let y=290;
+  S.qs.forEach((q,n)=>{
+    x.font='700 34px Vazirmatn,sans-serif';x.fillText(q,990,y);y+=54;
+    x.font='900 64px Vazirmatn,sans-serif';x.fillText(S.players[S.picks[n]],990,y);y+=100;
+  });
+  x.font='700 30px Vazirmatn,sans-serif';x.fillText('کی گفته — با دوستات بازی کن',990,1820);
+  const blob=await new Promise(r=>c.toBlob(r,'image/png'));
+  const f=new File([blob],'nateghe.png',{type:'image/png'});
+  if(navigator.canShare&&navigator.canShare({files:[f]})){try{await navigator.share({files:[f]})}catch(_){}return}
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='nateghe.png';a.click();
+}
+home();
+</script>
+</body>
+</html>
