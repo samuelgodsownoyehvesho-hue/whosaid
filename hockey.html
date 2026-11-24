@@ -31,6 +31,7 @@ h2{font-weight:900;font-size:clamp(60px,20vw,100px);line-height:.9}
 .home{margin-top:26px;color:var(--soft);font:400 15px "Instrument Sans",system-ui,sans-serif;text-decoration:underline;text-underline-offset:4px}
 #pause{position:fixed;top:calc(12px + env(safe-area-inset-top));right:14px;width:44px;height:44px;border-radius:50%;border:2px solid var(--ember);background:transparent;display:flex;gap:5px;align-items:center;justify-content:center;box-shadow:0 0 12px rgba(255,169,39,.4)}
 #pause i{width:3px;height:14px;background:var(--ember);border-radius:2px}
+#net{position:fixed;left:12px;bottom:calc(10px + env(safe-area-inset-bottom));font:500 12px "Instrument Sans",system-ui,sans-serif;color:#c58a2e;pointer-events:none}
 </style>
 <title>Air Hockey Online: Play Friends or a Bot | Whosaid</title>
 <meta name="description" content="Play neon air hockey online. Beat the bot, challenge a friend with a shared link and draw your own mallet. Free, works on your phone.">
@@ -57,6 +58,7 @@ h2{font-weight:900;font-size:clamp(60px,20vw,100px);line-height:.9}
 <body>
 <canvas id="c"></canvas>
 <button id="pause" aria-label="Pause" hidden><i></i><i></i></button>
+<div id="net" hidden></div>
 <div id="ui"></div>
 <script>
 const W=540,H=960,PAD=40,GW=210,D=36,PR=17,MR=44,POST=7,LIM=40,INF=4;
@@ -177,7 +179,7 @@ function moveToward(m,tx,ty,speed,dt){
   m.vx=dx/d*s/dt;m.vy=dy/d*s/dt;m.x+=dx/d*s;m.y+=dy/d*s;
 }
 function hitHull(m){
-  const h=m.hull,n=h.length;if(n<3)return;
+  const h=m.hull,n=h.length;if(n<3)return false;
   const px=puck.x-m.x,py=puck.y-m.y,R=PR+INF;
   let best=1e12,bx=0,by=0,sign=0,inside=true;
   for(let i=0;i<n;i++){
@@ -188,13 +190,13 @@ function hitHull(m){
     const cr=ex*(py-a[1])-ey*(px-a[0]);
     if(cr!==0){const sg=cr>0?1:-1;if(!sign)sign=sg;else if(sg!==sign)inside=false}
   }
-  if(!inside&&Math.sqrt(best)>=R)return;
+  if(!inside&&Math.sqrt(best)>=R)return false;
   let nx=inside?bx-px:px-bx,ny=inside?by-py:py-by,l=Math.hypot(nx,ny);
   if(l<1e-6){nx=px;ny=py;l=Math.hypot(nx,ny)||1}
   nx/=l;ny/=l;
   puck.x=m.x+bx+nx*R;puck.y=m.y+by+ny*R;
   const rv=(puck.vx-m.vx)*nx+(puck.vy-m.vy)*ny;
-  if(rv<0){puck.vx-=1.88*rv*nx;puck.vy-=1.88*rv*ny}
+  if(rv<0){puck.vx-=1.88*rv*nx;puck.vy-=1.88*rv*ny;return true}return false
 }
 function hitPost(x,y){
   const dx=puck.x-x,dy=puck.y-y,d=Math.hypot(dx,dy),min=PR+POST;
@@ -215,14 +217,9 @@ function goal(side){
 function stepPuck(h){
   if(puck.dead)return;
   puck.x+=puck.vx*h;puck.y+=puck.vy*h;
+  bounce(puck);
+  hitHull(A);if(role==='solo')hitHull(B);
   const a=W/2-GW/2,b=W/2+GW/2;
-  if(puck.x<PR){puck.x=PR;puck.vx=Math.abs(puck.vx)*.94}
-  if(puck.x>W-PR){puck.x=W-PR;puck.vx=-Math.abs(puck.vx)*.94}
-  const mouth=puck.x>a&&puck.x<b;
-  if(puck.y<PR&&!mouth){puck.y=PR;puck.vy=Math.abs(puck.vy)*.94}
-  if(puck.y>H-PR&&!mouth){puck.y=H-PR;puck.vy=-Math.abs(puck.vy)*.94}
-  if(puck.y<0||puck.y>H)puck.x=clamp(puck.x,a+PR,b-PR);
-  hitHull(A);hitHull(B);
   hitPost(a,0);hitPost(b,0);hitPost(a,H);hitPost(b,H);
   if(puck.y<-PR*.9)goal(1);else if(puck.y>H+PR*.9)goal(-1);
 }
@@ -275,11 +272,17 @@ function updateSim(dt,now){
 function updateGuest(dt,now){
   moveToward(B,B.tx,B.ty,3200,dt);
   const n=NS;if(!n.p)return;
-  const age=Math.min(.15,(now-n.t)/1000),k=1-Math.pow(.0001,dt);
-  const px=n.p[0]+n.p[2]*age,py=n.p[1]+n.p[3]*age;
-  if(Math.hypot(px-puck.x,py-puck.y)>160){puck.x=px;puck.y=py}else{puck.x+=(px-puck.x)*k;puck.y+=(py-puck.y)*k}
+  const k=1-Math.pow(.0001,dt);
   A.x+=(n.a[0]-A.x)*k;A.y+=(n.a[1]-A.y)*k;
-  if(G.state==='play'&&!puck.dead){G.trail.push([puck.x,puck.y]);if(G.trail.length>9)G.trail.shift()}
+  if(puck.dead||G.state!=='play')return;
+  const st=3,h=dt/st;
+  for(let i=0;i<st;i++){
+    puck.x+=puck.vx*h;puck.y+=puck.vy*h;bounce(puck);
+    if(hitHull(B)&&now-lastHitOut>120){lastHitOut=now;hitSeq++;hitHold=now+RTT+200;sendHit()}
+  }
+  const f=Math.pow(.72,dt);puck.vx*=f;puck.vy*=f;
+  const sp=Math.hypot(puck.vx,puck.vy);if(sp>1500){puck.vx*=1500/sp;puck.vy*=1500/sp}
+  G.trail.push([puck.x,puck.y]);if(G.trail.length>9)G.trail.shift();
 }
 function update(dt,now){
   if(role!=='solo')netBeat(now);
@@ -438,7 +441,11 @@ async function connect(c){
   ch.on('broadcast',{event:'m'},e=>onNet(e.payload));
   await new Promise((res,rej)=>{ch.subscribe(st=>{if(st==='SUBSCRIBED')res();else if(st==='CHANNEL_ERROR'||st==='TIMED_OUT')rej(new Error('Could not connect ('+st+').'))})});
 }
-function tx(o){if(ch)ch.send({type:'broadcast',event:'m',payload:{c:cid,...o}})}
+function tx(o,relay){
+  const m={c:cid,...o};
+  if(dcOpen&&!relay){try{dc.send(JSON.stringify(m));return}catch(_){}}
+  if(ch)ch.send({type:'broadcast',event:'m',payload:m});
+}
 async function hostGame(){
   role='host';peer=null;joined=false;G.state='wait';G.sa=G.sb=0;
   show(`<h2 ${BIG}>Connecting</h2><p class="sub">Setting up your match.</p>`);
@@ -477,41 +484,48 @@ async function invite(){
 
 function sendState(now,force){
   const live=G.state==='play'||G.state==='countdown'||G.state==='goal';
-  if(!force&&now-lastSend<(live?50:500))return;
+  if(!force&&now-lastSend<(live?(dcOpen?33:50):500))return;
   lastSend=now;
-  tx({k:'s',z:{wait:'w',countdown:'c',play:'p',goal:'g',over:'o'}[G.state]||'w',s:[G.sa,G.sb],d:puck.dead?1:0,cd:Math.max(0,Math.round(G.cdEnd-now)),p:[Math.round(puck.x),Math.round(puck.y),Math.round(puck.vx),Math.round(puck.vy)],a:[Math.round(A.x),Math.round(A.y)]});
+  tx({k:'s',z:{wait:'w',countdown:'c',play:'p',goal:'g',over:'o'}[G.state]||'w',s:[G.sa,G.sb],d:puck.dead?1:0,cd:Math.max(0,Math.round(G.cdEnd-now)),r:Math.round(RTT),p:[Math.round(puck.x),Math.round(puck.y),Math.round(puck.vx),Math.round(puck.vy)],a:[Math.round(A.x),Math.round(A.y)]});
 }
 function netBeat(now){
   if(!ch)return;
+  if(dcOpen&&now-lastSeen>2500)dcOpen=false;
   if(role==='host'){
     if(peer&&now-lastSeen>6000)return peerLost();
-    if(peer)sendState(now);
+    if(peer){sendState(now);if(now-lastPing>1000){lastPing=now;tx({k:'pg',t:now})}}
   }else if(role==='guest'){
     if(!joined){
-      if(now-lastJoin>1500){lastJoin=now;tx({k:'join',shape:myShape})}
+      if(now-lastJoin>1500){lastJoin=now;tx({k:'join',shape:myShape},true)}
       if(now-joinStart>12000)leaveOnline('Could not reach the host. Check the link and try again.');
       return;
     }
     if(now-lastSeen>6000)return leaveOnline('The host disconnected.');
-    if(G.state==='play'||G.state==='countdown'||G.state==='goal'){
-      if(now-lastAim>33){lastAim=now;tx({k:'aim',x:Math.round(B.tx),y:Math.round(B.ty)})}
-    }else if(now-lastAim>1000){lastAim=now;tx({k:'ping'})}
+    const live=G.state==='play'||G.state==='countdown'||G.state==='goal';
+    if(live){if(now-lastAim>(dcOpen?25:45)){lastAim=now;tx({k:'aim',x:Math.round(B.tx),y:Math.round(B.ty)})}}
+    else if(now-lastAim>1000){lastAim=now;tx({k:'ping'})}
   }
+  if(now-lastShow>500){lastShow=now;showNet()}
 }
-function peerLost(){peer=null;G.state='wait';hostLobby('Your friend disconnected. Share the link again or cancel.')}
+function peerLost(){closeRTC();peer=null;G.state='wait';hostLobby('Your friend disconnected. Share the link again or cancel.')}
 function onNet(m){
   const now=performance.now();
   if(!m||m.c===cid)return;
   if(role==='host'){
     if(m.k==='join'){
-      if(peer&&peer!==m.c&&now-lastSeen<6000)return tx({k:'full',to:m.c});
+      if(peer&&peer!==m.c&&now-lastSeen<6000)return tx({k:'full',to:m.c},true);
+      if(peer!==m.c)lastHitIn=-1;
       peer=m.c;lastSeen=now;
       setShape(B,rot(cleanShape(m.shape)||ringShape().s));buildMallets();
-      tx({k:'welcome',to:m.c,shape:myShape});
+      tx({k:'welcome',to:m.c,shape:myShape},true);
       if(G.state==='wait')hostLobby();
+      if(!pc&&!dcOpen)hostRTC(m.c);
     }else if(m.c===peer){
       lastSeen=now;
       if(m.k==='aim'){B.tx=clamp(+m.x||0,MR,W-MR);B.ty=clamp(+m.y||0,MR,H/2-MR-4)}
+      else if(m.k==='po')RTT=RTT*.6+(now-m.t)*.4;
+      else if(m.k==='hit')applyHit(m);
+      else if(m.k==='rtc'&&m.d&&m.d.type==='answer'&&pc)pc.setRemoteDescription({type:'answer',sdp:m.d.sdp}).catch(()=>{});
       else if(m.k==='bye')peerLost();
     }
   }else if(role==='guest'){
@@ -523,13 +537,15 @@ function onNet(m){
     else if(joined){
       lastSeen=now;
       if(m.k==='s')applyState(m);
+      else if(m.k==='pg')tx({k:'po',t:m.t});
+      else if(m.k==='rtc'&&m.d&&m.d.type==='offer')guestRTC(m.d);
       else if(m.k==='bye')leaveOnline('The host left.');
     }
   }
 }
 function applyState(m){
   const now=performance.now();
-  NS.p=m.p;NS.a=m.a;NS.t=now;
+  NS.p=m.p;NS.a=m.a;NS.t=now;if(m.r)RTT=m.r;
   if(m.s[0]>G.sa||m.s[1]>G.sb){G.flash={top:m.s[0]>G.sa,t:now};if(navigator.vibrate)navigator.vibrate(m.s[1]>G.sb?40:90)}
   G.sa=m.s[0];G.sb=m.s[1];puck.dead=!!m.d;
   const st={w:'wait',c:'countdown',p:'play',g:'goal',o:'over'}[m.z]||'wait';
@@ -541,14 +557,20 @@ function applyState(m){
     else if(prev==='wait'||prev==='over')ui.hidden=true;
     if(st==='countdown'){B.x=B.tx=W/2;B.y=B.ty=H*.14;G.trail=[]}
   }
+  if(puck.dead||st!=='play'){puck.x=m.p[0];puck.y=m.p[1];puck.vx=m.p[2];puck.vy=m.p[3];return}
+  if(now<hitHold)return;
+  const t=advance(m.p,oneWay()),d=Math.hypot(t[0]-puck.x,t[1]-puck.y);
+  if(d>140){puck.x=t[0];puck.y=t[1];puck.vx=t[2];puck.vy=t[3]}
+  else{puck.x+=(t[0]-puck.x)*.4;puck.y+=(t[1]-puck.y)*.4;puck.vx+=(t[2]-puck.vx)*.5;puck.vy+=(t[3]-puck.vy)*.5}
 }
 function leaveOnline(msg){
-  try{tx({k:'bye'})}catch(_){}
+  try{tx({k:'bye'});tx({k:'bye'},true)}catch(_){}
+  closeRTC();
   if(ch&&sb){try{sb.removeChannel(ch)}catch(_){}}
   ch=null;role='solo';peer=null;joined=false;
   if(location.pathname.startsWith('/h/'))history.replaceState(null,'','/hockey.html');
   setShape(A,myShape);setShape(B,ringShape().s);buildMallets();
-  menu(msg);
+  showNet();menu(msg);
 }
 
 async function share(){
@@ -573,6 +595,96 @@ async function share(){
   const file=new File([blob],'airhockey.png',{type:'image/png'});
   if(navigator.canShare&&navigator.canShare({files:[file]})){try{await navigator.share({files:[file]})}catch(_){}return}
   const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='airhockey.png';a.click();
+}
+let pc=null,dc=null,dcOpen=false,rtcTimer=0,RTT=240,lastPing=0,hitSeq=0,lastHitIn=-1,lastHitOut=0,hitHold=0,lastShow=0;
+const netEl=document.getElementById('net');
+const ICE={iceServers:[{urls:['stun:stun.l.google.com:19302','stun:stun.cloudflare.com:3478']}]};
+const oneWay=()=>Math.max(.02,Math.min(.5,RTT/2000));
+function bounce(p){
+  const a=W/2-GW/2,b=W/2+GW/2;
+  if(p.x<PR){p.x=PR;p.vx=Math.abs(p.vx)*.94}
+  if(p.x>W-PR){p.x=W-PR;p.vx=-Math.abs(p.vx)*.94}
+  const mouth=p.x>a&&p.x<b;
+  if(p.y<PR&&!mouth){p.y=PR;p.vy=Math.abs(p.vy)*.94}
+  if(p.y>H-PR&&!mouth){p.y=H-PR;p.vy=-Math.abs(p.vy)*.94}
+  if(p.y<0||p.y>H)p.x=clamp(p.x,a+PR,b-PR);
+}
+function advance(p,t){
+  let x=p[0],y=p[1],vx=p[2],vy=p[3];
+  const n=Math.min(40,Math.max(1,Math.ceil(t*120))),h=t/n;
+  for(let i=0;i<n;i++){
+    x+=vx*h;y+=vy*h;
+    const o={x,y,vx,vy};bounce(o);x=o.x;y=o.y;vx=o.vx;vy=o.vy;
+    const f=Math.pow(.72,h);vx*=f;vy*=f;
+  }
+  return[x,y,vx,vy];
+}
+function sendHit(){
+  const m={k:'hit',n:hitSeq,p:[Math.round(puck.x),Math.round(puck.y),Math.round(puck.vx),Math.round(puck.vy)]};
+  tx(m);setTimeout(()=>tx(m),30);setTimeout(()=>tx(m),70);
+}
+function applyHit(m){
+  if(G.state!=='play'||puck.dead||!Array.isArray(m.p)||!(m.n>lastHitIn))return;
+  const [x,y,vx,vy]=m.p.map(Number);
+  if(![x,y,vx,vy].every(isFinite))return;
+  if(Math.hypot(x-puck.x,y-puck.y)>260||Math.hypot(vx,vy)>1600)return;
+  lastHitIn=m.n;
+  const q=advance([x,y,vx,vy],oneWay());
+  puck.x=q[0];puck.y=q[1];puck.vx=q[2];puck.vy=q[3];
+}
+function showNet(){
+  if(!netEl)return;
+  if(role==='solo'||!ch){netEl.hidden=true;return}
+  netEl.hidden=false;netEl.textContent=(dcOpen?'Direct connection':'Via server')+', '+Math.round(RTT)+' ms';
+}
+function closeRTC(){
+  clearTimeout(rtcTimer);dcOpen=false;
+  try{if(dc)dc.close()}catch(_){}
+  try{if(pc)pc.close()}catch(_){}
+  dc=null;pc=null;
+}
+function setupDC(c0){
+  dc=c0;
+  dc.onopen=()=>{dcOpen=true;clearTimeout(rtcTimer);showNet()};
+  dc.onclose=()=>{dcOpen=false;showNet()};
+  dc.onmessage=e=>{let m;try{m=JSON.parse(e.data)}catch(_){return}dcOpen=dc&&dc.readyState==='open';onNet(m)};
+}
+function newPC(){
+  closeRTC();
+  pc=new RTCPeerConnection(ICE);
+  pc.onconnectionstatechange=()=>{if(pc&&['failed','closed','disconnected'].includes(pc.connectionState)){dcOpen=false;showNet()}};
+  rtcTimer=setTimeout(()=>{if(!dcOpen)closeRTC()},9000);
+  return pc;
+}
+function gathered(p){
+  return new Promise(res=>{
+    if(p.iceGatheringState==='complete')return res();
+    const t=setTimeout(res,2500);
+    p.addEventListener('icegatheringstatechange',()=>{if(p.iceGatheringState==='complete'){clearTimeout(t);res()}});
+  });
+}
+async function hostRTC(to){
+  if(!window.RTCPeerConnection)return;
+  try{
+    const p=newPC();
+    setupDC(p.createDataChannel('g',{ordered:false,maxRetransmits:0}));
+    await p.setLocalDescription(await p.createOffer());
+    await gathered(p);
+    if(p!==pc)return;
+    tx({k:'rtc',to,d:{type:'offer',sdp:p.localDescription.sdp}},true);
+  }catch(_){closeRTC()}
+}
+async function guestRTC(d){
+  if(!window.RTCPeerConnection)return;
+  try{
+    const p=newPC();
+    p.ondatachannel=e=>setupDC(e.channel);
+    await p.setRemoteDescription({type:'offer',sdp:d.sdp});
+    await p.setLocalDescription(await p.createAnswer());
+    await gathered(p);
+    if(p!==pc)return;
+    tx({k:'rtc',d:{type:'answer',sdp:p.localDescription.sdp}},true);
+  }catch(_){closeRTC()}
 }
 addEventListener('resize',resize);
 const jm=location.pathname.match(/\/h\/([A-Za-z0-9]{5})/)||location.search.match(/[?&]g=([A-Za-z0-9]{5})/);
