@@ -147,6 +147,8 @@ module.exports = async (req, res) => {
         if (!/^incoming\/[a-f0-9-]{36}\.zip$/i.test(pathname)) throw new Error('Invalid upload path.');
         const metadata = cleanMetadata(clientPayload);
         if (!pathname.toLowerCase().includes(metadata.id)) throw new Error('Upload metadata does not match its path.');
+        const [coverUrl] = await redis([['HGET', 'game:' + metadata.id, 'coverUrl']]);
+        if (!coverUrl) throw new Error('Upload a cover image before uploading the game bundle.');
         const ip = String(req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown').split(',')[0].trim().replace(/[^a-zA-Z0-9:._-]/g, '').slice(0, 80);
         const [count] = await redis([['INCR', 'game-upload-rate:' + ip], ['EXPIRE', 'game-upload-rate:' + ip, 3600]]);
         if (Number(count) > 5) throw new Error('Upload limit reached. Try again in an hour.');

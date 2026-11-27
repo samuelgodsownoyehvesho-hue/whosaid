@@ -210,7 +210,7 @@ const API='/api/questions';
 const MODES=['mixed','college','work','couples','roast','classic'];
 const app=document.getElementById('app');
 const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-let S={players:[],qs:[],src:'',err:'',mode:'mixed',adult:(function(){try{return localStorage.getItem('mlt_18')==='1'}catch(_){return false}})(),char:(function(){try{return localStorage.getItem('mlt_char')||''}catch(_){return ''}})(),i:0,picks:[],busy:false};
+let S={players:[],qs:[],src:'',err:'',mode:'mixed',adult:(function(){try{return localStorage.getItem('mlt_18')==='1'}catch(_){return false}})(),char:(function(){try{return localStorage.getItem('mlt_char')||''}catch(_){return ''}})(),i:0,picks:[],busy:false,publishedGames:[]};
 
 function shuffle(a){a=a.slice();for(let k=a.length-1;k>0;k--){const j=Math.floor(Math.random()*(k+1));[a[k],a[j]]=[a[j],a[k]]}return a}
 function prog(){return `<div class="prog">${Array.from({length:ROUNDS},(_,k)=>`<i class="${k<=S.i?'on':''}"></i>`).join('')}</div>`}
@@ -225,7 +225,7 @@ function home(){
     {href:'/push.html',cls:'game-card-challenge',image:'/images/logos/pushup-logo.jpg',alt:'Pushup challenge',number:'04',title:'Push-up challenge',description:'Bring your best. Back it up.',arrow:'↗'},
     {href:'/Ludo.html',cls:'game-card-board',image:'/images/logos/ludo-logo.png',alt:'3D Ludo board with four colored pawns',number:'05',title:'Ludo',description:'Race your pawns home. Play friends or bots.',arrow:'↗'},
     {href:'/hallow.html',cls:'game-card-horror',image:'/images/logos/hallow-logo.png',alt:'A shadowy forest with a red glow',number:'06',title:'The Hollow',description:'Survive the dark. Trust nothing.',arrow:'↗'},
-    {href:'/games.html',cls:'game-card-community',community:true,number:'07',title:'Community games',description:'Discover games made by players.',arrow:'↗'}
+    ...S.publishedGames.map((game,index)=>({href:`/games.html?play=${encodeURIComponent(game.id)}`,cls:'',image:game.coverUrl||'/og-image.png',alt:`${game.title} cover`,number:String(index+7).padStart(2,'0'),title:game.title,description:game.description,arrow:'↗'}))
   ];
   app.innerHTML=`<main class="fade">
     <header class="masthead"><a class="wordmark" href="/" aria-label="Who Said home"><span class="wordmark-mark" aria-hidden="true">?</span> WHO SAID</a><span class="mast-note">Your group chat, but louder.</span></header>
@@ -234,7 +234,7 @@ function home(){
       <div class="hero-copy"><span class="hero-kicker">A little friendly chaos <span aria-hidden="true">✳</span></span><h1 id="welcome-title">Let the<br>group chat<br><span>decide.</span></h1><p class="hero-description">Hot takes, questionable accusations, and just enough friendly rivalry. Pick a game and make some memories.</p><div class="hero-stats"><span>✳ &nbsp;Free to play</span><span>↗ &nbsp;No signup</span><span>☻ &nbsp;Better together</span></div></div>
       <div class="hero-art" aria-hidden="true"><span class="hero-spark one">✳</span><span class="hero-spark two">✳</span><img src="/images/logos/who-said-logo.jpg" alt="" fetchpriority="high"></div>
     </section>
-    <section aria-labelledby="games-title"><div class="section-heading"><div><h2 id="games-title">Pick your kind of chaos</h2><p>Seven games. One very competitive group.</p></div><span class="eyebrow">The game shelf · 07</span></div><div class="game-grid">${gameCards.map(game=>`<a class="game-card ${game.cls}" href="${game.href}" aria-label="Play ${game.title}. ${game.description}"><div class="card-art ${game.community?'community-art':''}"><span class="card-index">${game.number}</span>${game.community?'<div class="community-mark" aria-hidden="true"><span>+ GAMES</span><i></i><i></i><i></i></div>':`<img src="${game.image}" alt="${game.alt}" loading="lazy">`}</div><div class="card-body"><div><h3>${game.title}</h3><p>${game.description}</p></div><span class="card-arrow" aria-hidden="true">${game.arrow}</span></div></a>`).join('')}</div></section>
+    <section aria-labelledby="games-title"><div class="section-heading"><div><h2 id="games-title">Pick your kind of chaos</h2><p>Built-in favorites and player-made games, all on one shelf.</p></div><span class="eyebrow">The game shelf · ${String(6+S.publishedGames.length).padStart(2,'0')}</span></div><div class="game-grid" id="games-grid">${gameCards.map(game=>`<a class="game-card ${game.cls}" href="${esc(game.href)}" aria-label="Play ${esc(game.title)}. ${esc(game.description)}"><div class="card-art"><span class="card-index">${esc(game.number)}</span><img src="${esc(game.image)}" alt="${esc(game.alt)}" loading="lazy"></div><div class="card-body"><div><h3>${esc(game.title)}</h3><p>${esc(game.description)}</p></div><span class="card-arrow" aria-hidden="true">${esc(game.arrow)}</span></div></a>`).join('')}</div></section>
     <section class="play-panel" id="play" aria-label="Set up a Most Likely To game"><div class="play-players"><div class="play-panel-heading"><span class="panel-number">01</span><div><h2>Get the group in</h2><p class="microcopy" style="margin-top:3px">Add 2–12 friends to play.</p></div></div><form class="row" id="player-form"><label class="sr-only" for="nm">Add a player</label><input id="nm" maxlength="14" placeholder="Your friend’s name" autocomplete="off" aria-describedby="player-hint"><button class="add" type="submit" aria-label="Add player">+</button></form><p id="player-hint" class="microcopy">${n} ${n===1?'player':'players'} in the game · click a name to remove</p><div class="chips" aria-label="Players">${S.players.map((p,k)=>`<button class="chip" type="button" aria-label="Remove ${esc(p)} from game" onclick="rmP(${k})">${esc(p)} ×</button>`).join('')}</div><div class="eyebrow">Pick your questions</div><div class="chips mode-chips" aria-label="Question style">${modes}</div></div>
     <div class="play-settings"><div class="play-panel-heading"><span class="panel-number">02</span><div><h2>Make it yours</h2><p class="microcopy" style="margin-top:3px">Optional little plot twist.</p></div></div><label class="setting-label" for="ch">Give your questions a character<textarea id="ch" class="chbox" rows="2" maxlength="200" placeholder="e.g. a sarcastic Lagos bus conductor" oninput="setChar(this.value)">${esc(S.char)}</textarea></label><button class="adult-toggle" type="button" aria-pressed="${S.adult}" onclick="toggle18()">18+ mode <span aria-hidden="true">·</span> ${S.adult?'On':'Off'}</button><div class="sp"></div><button class="btn" ${n<2?'disabled':''} onclick="start()">${n<2?`Add ${2-n} more ${2-n===1?'friend':'friends'}`:'Start the group chat'}</button><a class="btn alt" href="/room.html">Want to play online with friends? &nbsp;↗</a></div></section>
     <section class="info-grid" aria-label="About Who Said"><div><h2>Good friends. Bad takes. Great games.</h2><p>Who Said is a free home for games made better by your friends. Add your group, choose your kind of question, and let the friendly accusations commence. No downloads, no signups; just pass the phone around and enjoy six rounds together.</p></div><div><h2>Made for everybody.</h2><p>Free to play and easy to share. Prefer Persian? Take a look at the <a href="/fa/">فارسی version</a>.</p></div></section>
@@ -348,6 +348,11 @@ async function share(){
 }
 
 home();
+fetch('/api/games?action=list',{cache:'no-store'}).then(response=>response.ok?response.json():null).then(data=>{
+  if(!Array.isArray(data?.games))return;
+  S.publishedGames=data.games.filter(game=>typeof game.indexUrl==='string'&&typeof game.title==='string'&&typeof game.description==='string');
+  if(document.getElementById('games-grid'))home();
+}).catch(()=>{});
 </script>
 </body>
 </html>
