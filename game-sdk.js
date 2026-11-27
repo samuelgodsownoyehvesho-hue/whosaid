@@ -5,14 +5,16 @@
   let resolveReady;
   let connected = false;
   const connection = new Promise(resolve => { resolveReady = resolve; });
+  let playerOrigin = '';
+  try { playerOrigin = new URL(document.referrer).origin; } catch (_) {}
 
   function post(message) {
-    if (window.parent === window) throw new Error('WhosaidMultiplayer must run inside the Whosaid game player.');
-    window.parent.postMessage({ source: 'whosaid-game-sdk', ...message }, '*');
+    if (window.parent === window || !playerOrigin) throw new Error('WhosaidMultiplayer must run inside the Whosaid game player.');
+    window.parent.postMessage({ source: 'whosaid-game-sdk', ...message }, playerOrigin);
   }
 
   window.addEventListener('message', event => {
-    if (event.source !== window.parent || !event.data || event.data.source !== 'whosaid-player') return;
+    if (event.source !== window.parent || event.origin !== playerOrigin || !event.data || event.data.source !== 'whosaid-player') return;
     const message = event.data;
     if (message.type === 'init') {
       ready = Object.freeze(message.session);
