@@ -26,9 +26,8 @@
     <header class="masthead"><a class="wordmark" href="/" aria-label="Who Said home"><span class="mark" aria-hidden="true">?</span> WHO SAID</a><a class="mast-note" href="/">Back to the game shelf</a></header>
     <main>
       <section class="hero" aria-labelledby="page-title"><div><span class="eyebrow">Made by players, ready for everyone</span><h1 id="page-title">Community<br>game shelf.</h1><p>Discover community games and choose how to play: solo, with a compatible AI bot, or with friends.</p></div><aside class="upload-cta"><strong>Have a game?</strong><p>Upload a ZIP with a root index.html. Approved games are listed for everyone.</p><button class="button" id="toggle-upload" type="button" aria-expanded="false" aria-controls="upload-panel">Submit a game</button></aside></section>
-      <section class="upload-panel" id="upload-panel" aria-labelledby="upload-title"><h2 class="section-title" id="upload-title">Submit your game</h2><form id="upload-form"><div class="form-grid"><div class="field"><label for="game-title">Game title</label><input id="game-title" name="title" maxlength="48" required autocomplete="off" placeholder="e.g. Cosmic Checkers"></div><div class="field"><label for="game-file">Game bundle (.zip, max 4 MB)</label><input id="game-file" name="file" type="file" accept=".zip,application/zip" required></div><div class="field full"><label for="game-description">Short description</label><textarea id="game-description" name="description" maxlength="240" required placeholder="Tell everyone what makes it fun."></textarea></div></div><p class="help">Your ZIP must contain <code>index.html</code> at its root. Static browser files only; server code and executable uploads are blocked. New submissions are reviewed before appearing publicly. <a href="/game-sdk.html">Read the multiplayer and AI SDK guide.</a></p><div class="row"><button class="button" id="upload-submit" type="submit">Upload for review</button><button class="button secondary" id="upload-cancel" type="button">Cancel</button></div><p class="notice" id="upload-notice" role="status" aria-live="polite"></p></form></section>
+      <section class="upload-panel" id="upload-panel" aria-labelledby="upload-title"><h2 class="section-title" id="upload-title">Submit your game</h2><form id="upload-form"><div class="form-grid"><div class="field"><label for="game-title">Game title</label><input id="game-title" name="title" maxlength="48" required autocomplete="off" placeholder="e.g. Cosmic Checkers"></div><div class="field"><label for="game-file">Game bundle (.zip, max 4 MB)</label><input id="game-file" name="file" type="file" accept=".zip,application/zip" required></div><div class="field full"><label for="game-description">Short description</label><textarea id="game-description" name="description" maxlength="240" required placeholder="Tell everyone what makes it fun."></textarea></div></div><p class="help">Your ZIP must contain <code>index.html</code> at its root. Standalone games can be played solo without the Whosaid SDK; online rooms and AI turns are optional and require SDK hooks. Static browser files only; server code and executable uploads are blocked. New submissions are reviewed before appearing publicly. <a href="/game-sdk.html">Read the multiplayer and AI SDK guide.</a></p><div class="row"><button class="button" id="upload-submit" type="submit">Upload for review</button><button class="button secondary" id="upload-cancel" type="button">Cancel</button></div><p class="notice" id="upload-notice" role="status" aria-live="polite"></p></form></section>
       <section aria-labelledby="catalog-title"><div class="section-head"><div><h2 id="catalog-title">Play something new</h2><p>Public games approved by the Whosaid team.</p></div><span class="eyebrow" id="game-count">Loading games</span></div><div class="game-grid" id="game-grid" aria-live="polite"><div class="status">Loading the game shelf…</div></div></section>
-      <section class="player" id="player" aria-labelledby="player-title"><div class="player-head"><h2 id="player-title">Game preview</h2><button class="button secondary" id="close-player" type="button">Close game</button></div><iframe id="game-frame" title="Community game" sandbox="allow-scripts allow-same-origin allow-forms allow-pointer-lock" referrerpolicy="no-referrer" allow="autoplay; fullscreen; gamepad"></iframe><div class="player-actions"><button class="button" id="create-room" type="button">Play with friends</button><button class="button secondary" id="create-bot-room" type="button">Play with a bot</button><button class="button secondary" id="report-game" type="button">Report this game</button></div><p class="player-hint" id="play-notice" role="status" aria-live="polite">Solo play starts in the preview. Multiplayer and bot play require the Whosaid SDK; bot turns also require published legal actions.</p></section>
       <section class="admin-panel" id="admin-panel" aria-labelledby="admin-title"><h2 id="admin-title" class="section-title">Game review</h2><p class="help">Admin-only review. The moderation key stays in this tab and is sent only in a request header.</p><div class="row"><label class="sr-only" for="admin-key">Moderation key</label><input id="admin-key" type="password" autocomplete="current-password" placeholder="Moderation key"><button id="load-pending" class="button" type="button">Load pending</button></div><div id="admin-list"></div><p id="admin-notice" class="notice" role="status" aria-live="polite"></p></section>
     </main>
     <footer><span>WHO SAID? · Community games</span><a href="/">Back to the main game shelf</a></footer>
@@ -37,7 +36,6 @@
     const API='/api/games';
     const $=id=>document.getElementById(id);
     const esc=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
-    let currentGame=null;
     const query=new URLSearchParams(location.search);
     if(query.get('manage')==='1') $('admin-panel').classList.add('open');
     $('toggle-upload').addEventListener('click',()=>{const open=$('upload-panel').classList.toggle('open');$('toggle-upload').setAttribute('aria-expanded',String(open));if(open)$('game-title').focus()});
@@ -50,18 +48,12 @@
         if(!response.ok||!Array.isArray(data.games))throw new Error(data.error||'Game services are not available in this static preview.');
         $('game-count').textContent=`${data.games.length} ${data.games.length===1?'game':'games'}`;
         if(!data.games.length){grid.innerHTML='<div class="status">No community games yet. Submit the first one and make the shelf yours.</div>';return}
-        grid.innerHTML=data.games.map((game,index)=>`<article class="game-card"><span class="eyebrow">Community pick · ${String(index+1).padStart(2,'0')}</span><h3>${esc(game.title)}</h3><p>${esc(game.description)}</p><div class="game-actions" role="group" aria-label="Play ${esc(game.title)}"><button class="button" type="button" data-game="${esc(game.id)}" data-game-mode="solo">Solo play</button><button class="button secondary" type="button" data-game="${esc(game.id)}" data-game-mode="bot">Play with a bot</button><button class="button secondary" type="button" data-game="${esc(game.id)}" data-game-mode="friends">Play with friends</button></div></article>`).join('');
-        grid.querySelectorAll('[data-game-mode]').forEach(button=>button.addEventListener('click',()=>{const game=data.games.find(item=>item.id===button.dataset.game);if(button.dataset.gameMode==='solo'){openGame(game);return}location.href=`/play-game.html?game=${encodeURIComponent(button.dataset.game)}&mode=${button.dataset.gameMode}`}));
+        grid.innerHTML=data.games.map((game,index)=>`<article class="game-card"><span class="eyebrow">Community pick · ${String(index+1).padStart(2,'0')}</span><h3>${esc(game.title)}</h3><p>${esc(game.description)}</p><div class="game-actions" role="group" aria-label="Play ${esc(game.title)}"><a class="button" href="${esc(game.indexUrl)}" target="_blank" rel="noopener noreferrer" referrerpolicy="no-referrer">Solo play</a><button class="button secondary" type="button" data-game="${esc(game.id)}" data-game-mode="bot">Play with a bot</button><button class="button secondary" type="button" data-game="${esc(game.id)}" data-game-mode="friends">Play with friends</button><button class="button secondary" type="button" data-report-game="${esc(game.id)}">Report this game</button></div></article>`).join('');
+        grid.querySelectorAll('[data-game-mode]').forEach(button=>button.addEventListener('click',()=>{location.href=`/play-game.html?game=${encodeURIComponent(button.dataset.game)}&mode=${button.dataset.gameMode}`}));
+        grid.querySelectorAll('[data-report-game]').forEach(button=>button.addEventListener('click',()=>reportGame(button.dataset.reportGame)));
       }catch(error){grid.innerHTML=`<div class="status">${esc(error.message)} The library will be available when the game service is configured.</div>`;$('game-count').textContent='Unavailable'}
     }
 
-    function openGame(game){
-      if(!game)return;currentGame=game;
-      $('player-title').textContent=game.title;$('game-frame').src=game.indexUrl;$('player').classList.add('open');$('player').scrollIntoView({behavior:'smooth',block:'start'});
-      $('play-notice').textContent='Solo play is open. You can also start a friends room or connect a compatible AI bot; the game must integrate the Whosaid SDK for multiplayer or bot turns.';
-    }
-
-    $('close-player').addEventListener('click',()=>{$('game-frame').src='about:blank';$('player').classList.remove('open');currentGame=null});
     $('upload-form').addEventListener('submit',async event=>{
       event.preventDefault();
       const title=$('game-title').value.trim(),description=$('game-description').value.trim(),file=$('game-file').files[0];
@@ -77,13 +69,10 @@
     });
     function setUploadNotice(text,error=false,success=false){const el=$('upload-notice');el.textContent=text;el.className=`notice${error?' error':success?' success':''}`}
 
-    function startRoom(mode){if(!currentGame)return;location.href=`/play-game.html?game=${encodeURIComponent(currentGame.id)}&mode=${mode}`}
-    $('create-room').addEventListener('click',()=>startRoom('friends'));
-    $('create-bot-room').addEventListener('click',()=>startRoom('bot'));
-    $('report-game').addEventListener('click',async()=>{
-      if(!currentGame)return;const reason=prompt('What should we review about this game?');if(!reason)return;
-      try{const response=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'report',id:currentGame.id,reason})});const data=await response.json();if(!response.ok)throw new Error(data.error);$('play-notice').textContent='Thanks. The report has been sent for review.'}catch(error){$('play-notice').textContent=error.message||'Report could not be sent.'}
-    });
+    async function reportGame(gameId){
+      const reason=prompt('What should we review about this game?');if(!reason)return;
+      try{const response=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'report',id:gameId,reason})});const data=await response.json();if(!response.ok)throw new Error(data.error);alert('Thanks. The report has been sent for review.')}catch(error){alert(error.message||'Report could not be sent.')}
+    }
 
     const adminHeaders=()=>({'Content-Type':'application/json','x-game-moderation-secret':$('admin-key').value});
     $('load-pending').addEventListener('click',async()=>{
