@@ -37,7 +37,7 @@
     const API='/api/games';
     const $=id=>document.getElementById(id);
     const esc=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
-    const publicGameUrl=value=>{try{const url=new URL(value);return url.protocol==='https:'&&url.hostname.endsWith('.public.blob.vercel-storage.com')?url.href:''}catch{return ''}};
+    const publicGameUrl=value=>{try{const url=new URL(value);return url.protocol==='https:'&&url.hostname==='whosaid-game-host.vercel.app'?url.href:''}catch{return ''}};
     const query=new URLSearchParams(location.search);
     if(query.get('manage')==='1') $('admin-panel').classList.add('open');
     $('toggle-upload').addEventListener('click',()=>{const open=$('upload-panel').classList.toggle('open');$('toggle-upload').setAttribute('aria-expanded',String(open));if(open)$('game-title').focus()});

@@ -98,7 +98,7 @@ async function saveArchive(blob, metadata) {
       const extension = entry.name.split('.').pop().toLowerCase();
       const type = MIME_TYPES[extension] || 'application/octet-stream';
       const stored = await put(`games/${metadata.id}/${entry.name}`, content, {
-        access: 'public', addRandomSuffix: false, contentType: type, contentDisposition: 'inline', cacheControlMaxAge: 3600,
+        access: 'public', addRandomSuffix: false, contentType: type, cacheControlMaxAge: 3600,
       });
       files.push({ path: entry.name, url: stored.url, size: content.byteLength, type });
     }

@@ -7,6 +7,7 @@ const ROOM_TTL = 6 * 60 * 60;
 const MAX_PLAYERS = 8;
 const MAX_EVENT_BYTES = 5000;
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+const GAME_HOST_ORIGIN = 'https://whosaid-game-host.vercel.app';
 const BUILT_IN_GAME_IDS = new Set(['03ecc1e7-a5a4-4a89-be17-b204f6d0eb15']);
 
 async function redis(commands) {
@@ -21,6 +22,7 @@ async function redis(commands) {
 
 function code(value) { const result = String(value || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); return /^[A-Z0-9]{5}$/.test(result) ? result : ''; }
 function safeId(value) { const result = String(value || '').toLowerCase(); return /^[a-f0-9-]{36}$/.test(result) ? result : ''; }
+function gamePlayUrl(id) { return `${GAME_HOST_ORIGIN}/${encodeURIComponent(id)}/index.html`; }
 function safeName(value) { return String(value || '').replace(/[^\p{L}\p{N} '.-]/gu, '').trim().slice(0, 18); }
 function parseObject(value) { try { const parsed = JSON.parse(value || '{}'); return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}; } catch (_) { return {}; } }
 function canonical(value) {
@@ -77,6 +79,31 @@ module.exports = async (req, res) => {
   const bad = (status, message) => res.status(status).json({ error: message });
 
   try {
+    if (action === 'asset' && req.method === 'GET') {
+      const id = safeId(query.id);
+      const pathname = String(query.path || '');
+      if (!id || pathname.length > 240 || pathname.startsWith('/') || pathname.includes('\\') || pathname.split('/').some(part => !part || part === '.' || part === '..')) return bad(400, 'Invalid game file path.');
+      const [status, rawFiles] = await redis([['HGET', 'game:' + id, 'status'], ['HGET', 'game:' + id, 'files']]);
+      if (status !== 'approved') return bad(404, 'Game not found.');
+      let files = [];
+      try { files = JSON.parse(rawFiles || '[]'); } catch (_) {}
+      const file = Array.isArray(files) && files.find(item => item && item.path === pathname);
+      if (!file || typeof file.url !== 'string' || !Number.isInteger(file.size) || file.size < 0 || file.size > 4 * 1024 * 1024) return bad(404, 'Game file not found.');
+      let blobUrl;
+      try { blobUrl = new URL(file.url); } catch (_) { return bad(404, 'Game file not found.'); }
+      const expectedBlobPath = `/games/${id}/${pathname.split('/').map(encodeURIComponent).join('/')}`;
+      if (blobUrl.protocol !== 'https:' || !blobUrl.hostname.endsWith('.public.blob.vercel-storage.com') || blobUrl.pathname !== expectedBlobPath) return bad(404, 'Game file not found.');
+      const upstream = await fetch(blobUrl, { signal: AbortSignal.timeout(10000), redirect: 'error' });
+      if (!upstream.ok) return bad(404, 'Game file not found.');
+      const body = Buffer.from(await upstream.arrayBuffer());
+      if (body.byteLength !== file.size) return bad(502, 'Game file could not be served.');
+      res.setHeader('Content-Type', file.type || 'application/octet-stream');
+      res.setHeader('Content-Disposition', 'inline; filename="game-file"');
+      res.setHeader('Cache-Control', 'public, max-age=60, s-maxage=60');
+      res.setHeader('X-Content-Type-Options', 'nosniff');
+      return res.status(200).send(body);
+    }
+
     if (action === 'list' && req.method === 'GET') {
       const [ids] = await redis([['SMEMBERS', 'games:approved']]);
       if (!Array.isArray(ids) || !ids.length) return res.status(200).json({ games: [] });
@@ -85,7 +112,7 @@ module.exports = async (req, res) => {
         const item = {};
         if (Array.isArray(row)) for (let i = 0; i < row.length; i += 2) item[row[i]] = row[i + 1];
         else Object.assign(item, row || {});
-        return { id: ids[index], title: item.title, description: item.description, indexUrl: item.indexUrl, coverUrl: item.coverUrl, createdAt: item.createdAt };
+        return { id: ids[index], title: item.title, description: item.description, indexUrl: gamePlayUrl(ids[index]), coverUrl: item.coverUrl, createdAt: item.createdAt };
       }).filter(item => item.title && item.indexUrl && !BUILT_IN_GAME_IDS.has(item.id));
       return res.status(200).json({ games });
     }
@@ -240,8 +267,8 @@ module.exports = async (req, res) => {
       const [joined] = await redis([['EVAL', reserveAgent, 2, room.key, room.key + ':players', MAX_PLAYERS, ROOM_TTL]]);
       if (joined !== 'ok') return bad(409, joined === 'full' ? 'This room is full.' : 'Room not found or expired.');
       const fresh = await loadRoom(roomCode);
-      const gameRows = await redis([['HGET', 'game:' + room.meta.gameId, 'title'], ['HGET', 'game:' + room.meta.gameId, 'indexUrl']]);
-      return res.status(200).json({ game: { id: room.meta.gameId, title: gameRows[0], url: gameRows[1] }, room: roomCode, players: Object.entries(fresh.players).map(([id, name]) => ({ id, name })), agentState: room.state.agentState || null, instructions: 'Choose one action from legalActions in agentState and POST it to /api/games with action=agent-move, code, and move. Poll this endpoint for updates. Do not invent actions outside legalActions.' });
+      const [gameTitle] = await redis([['HGET', 'game:' + room.meta.gameId, 'title']]);
+      return res.status(200).json({ game: { id: room.meta.gameId, title: gameTitle, url: gamePlayUrl(room.meta.gameId) }, room: roomCode, players: Object.entries(fresh.players).map(([id, name]) => ({ id, name })), agentState: room.state.agentState || null, instructions: 'Choose one action from legalActions in agentState and POST it to /api/games with action=agent-move, code, and move. Poll this endpoint for updates. Do not invent actions outside legalActions.' });
     }
 
     if (action === 'agent-move') {
