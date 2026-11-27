@@ -1,0 +1,112 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#f8f7f2">
+  <title>Community Games | Whosaid</title>
+  <meta name="description" content="Discover browser games made by the Whosaid community. Upload a game, play with friends, or invite an AI agent.">
+  <link rel="canonical" href="https://whosaid.vercel.app/games.html">
+  <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    :root{color-scheme:light;--paper:#f8f7f2;--ink:#171714;--muted:#727169;--yellow:#ffe52c;--line:#eae8df;--card:#fffefb;--green:#d8f66b;--red:#a43425;--radius:24px}
+    *{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 50% -24%,#fff4ac 0,transparent 49%),var(--paper);color:var(--ink);font-family:Archivo,system-ui,sans-serif;font-weight:500}button,input,textarea{font:inherit}button,a,input,textarea{outline-offset:4px}button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid #7770ff}.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}a{color:inherit}#app{max-width:1100px;min-height:100svh;margin:auto;padding:25px 28px 48px}.masthead{display:flex;align-items:center;justify-content:space-between;margin-bottom:52px}.wordmark{display:flex;align-items:center;gap:9px;font:19px "Archivo Black",sans-serif;text-decoration:none;letter-spacing:-1px}.mark{display:grid;width:32px;height:32px;place-items:center;border-radius:11px;background:var(--yellow);font-size:21px;transform:rotate(-6deg)}.mast-note,.eyebrow{color:var(--muted);font-size:11px;font-weight:700;letter-spacing:.12em;text-transform:uppercase}.hero{display:grid;grid-template-columns:minmax(0,1fr) 250px;align-items:end;gap:30px;margin:0 0 34px}.hero h1,.section-title{font-family:"Archivo Black",Impact,sans-serif;line-height:.94;letter-spacing:-.055em;text-transform:uppercase}.hero h1{max-width:700px;margin:12px 0;font-size:clamp(48px,8vw,90px)}.hero p{max-width:590px;margin:0;color:var(--muted);font-size:15px;line-height:1.65}.upload-cta{display:grid;gap:8px;padding:19px;border:1px solid #eee5ae;border-radius:20px;background:linear-gradient(135deg,#fff2a2,#ffea6a)}.upload-cta strong{font:18px "Archivo Black",sans-serif}.upload-cta p{font-size:12px;color:#57513b}.button{display:inline-flex;min-height:45px;align-items:center;justify-content:center;padding:12px 16px;border:0;border-radius:12px;background:var(--ink);color:white;font-size:12px;font-weight:700;text-decoration:none;cursor:pointer}.button.secondary{border:1px solid var(--line);background:#fff;color:var(--ink)}.button:disabled{opacity:.55;cursor:wait}.section-head{display:flex;align-items:end;justify-content:space-between;gap:12px;margin:44px 0 16px}.section-head h2{margin:0;font:24px "Archivo Black",sans-serif;text-transform:uppercase;letter-spacing:-.04em}.section-head p{margin:6px 0 0;color:var(--muted);font-size:13px}.game-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}.game-card{display:flex;min-height:195px;flex-direction:column;gap:12px;padding:18px;border:1px solid var(--line);border-radius:20px;background:var(--card);box-shadow:0 6px 20px #25211108}.game-card h3{margin:0;font:21px "Archivo Black",sans-serif;text-transform:uppercase;letter-spacing:-.04em}.game-card p{margin:0;color:var(--muted);font-size:13px;line-height:1.55}.game-card .button{margin-top:auto;align-self:flex-start}.status{min-height:100px;padding:30px;border:1px dashed #d5d1c5;border-radius:20px;color:var(--muted);font-size:14px;text-align:center}.upload-panel{display:none;margin:20px 0;padding:22px;border:1px solid var(--line);border-radius:20px;background:#fffefb}.upload-panel.open{display:block}.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}.field{display:grid;gap:6px}.field.full{grid-column:1/-1}.field label{font-size:12px;font-weight:700}.field input,.field textarea{width:100%;padding:12px;border:1px solid #dfdcd2;border-radius:11px;background:#fcfbf7;color:var(--ink)}.field textarea{min-height:82px;resize:vertical}.help{margin:12px 0 0;color:var(--muted);font-size:12px;line-height:1.6}.notice{min-height:20px;margin:12px 0 0;color:var(--muted);font-size:13px}.notice.error{color:var(--red)}.notice.success{color:#456a0c}.row{display:flex;gap:9px;margin-top:14px}.admin-panel{display:none;margin-top:36px;padding:20px;border:1px solid #e5c3bc;border-radius:18px;background:#fff8f5}.admin-panel.open{display:block}.admin-row{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:12px 0;border-top:1px solid #e8dad5}.admin-row span{flex:1 1 200px}.admin-row button{min-height:37px;padding:8px 12px;border:0;border-radius:9px;background:var(--ink);color:white;font-size:12px;font-weight:700;cursor:pointer}.admin-row button.reject{background:#f1e1dd;color:#6c2419}.player{display:none;margin-top:24px;padding:18px;border:1px solid var(--line);border-radius:18px;background:#fffefb}.player.open{display:block}.player-head{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:12px}.player-head h2{margin:0;font:20px "Archivo Black",sans-serif}.player iframe{display:block;width:100%;height:min(66vh,650px);min-height:360px;border:1px solid var(--line);border-radius:13px;background:#fff}.player-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}.player-hint{color:var(--muted);font-size:12px;line-height:1.55}footer{display:flex;justify-content:space-between;gap:15px;margin-top:54px;padding-top:16px;border-top:1px solid var(--line);color:var(--muted);font-size:11px}
+    @media(max-width:720px){#app{padding:17px 17px 38px}.masthead{margin-bottom:34px}.hero{grid-template-columns:1fr;gap:18px}.upload-cta{max-width:480px}.game-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.game-card{min-height:190px;padding:14px;border-radius:17px}.game-card h3{font-size:18px}.section-head{align-items:start}.player iframe{min-height:300px}.form-grid{grid-template-columns:1fr}.field.full{grid-column:auto}footer{flex-direction:column}}
+    @media(max-width:410px){#app{padding-left:13px;padding-right:13px}.game-grid{grid-template-columns:1fr}.game-card{min-height:160px}}
+    @media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;transition-duration:.01ms!important}}
+  </style>
+</head>
+<body>
+  <div id="app">
+    <header class="masthead"><a class="wordmark" href="/" aria-label="Who Said home"><span class="mark" aria-hidden="true">?</span> WHO SAID</a><a class="mast-note" href="/">Back to the game shelf</a></header>
+    <main>
+      <section class="hero" aria-labelledby="page-title"><div><span class="eyebrow">Made by players, ready for everyone</span><h1 id="page-title">Community<br>game shelf.</h1><p>Discover browser games from the community. Share an offline game, connect it to Whosaid multiplayer, and invite friends or a compatible AI agent.</p></div><aside class="upload-cta"><strong>Have a game?</strong><p>Upload a ZIP with a root index.html. Approved games are listed for everyone.</p><button class="button" id="toggle-upload" type="button" aria-expanded="false" aria-controls="upload-panel">Submit a game</button></aside></section>
+      <section class="upload-panel" id="upload-panel" aria-labelledby="upload-title"><h2 class="section-title" id="upload-title">Submit your game</h2><form id="upload-form"><div class="form-grid"><div class="field"><label for="game-title">Game title</label><input id="game-title" name="title" maxlength="48" required autocomplete="off" placeholder="e.g. Cosmic Checkers"></div><div class="field"><label for="game-file">Game bundle (.zip, max 4 MB)</label><input id="game-file" name="file" type="file" accept=".zip,application/zip" required></div><div class="field full"><label for="game-description">Short description</label><textarea id="game-description" name="description" maxlength="240" required placeholder="Tell everyone what makes it fun."></textarea></div></div><p class="help">Your ZIP must contain <code>index.html</code> at its root. Static browser files only; server code and executable uploads are blocked. New submissions are reviewed before appearing publicly. <a href="/game-sdk.html">Read the multiplayer and AI SDK guide.</a></p><div class="row"><button class="button" id="upload-submit" type="submit">Upload for review</button><button class="button secondary" id="upload-cancel" type="button">Cancel</button></div><p class="notice" id="upload-notice" role="status" aria-live="polite"></p></form></section>
+      <section aria-labelledby="catalog-title"><div class="section-head"><div><h2 id="catalog-title">Play something new</h2><p>Public games approved by the Whosaid team.</p></div><span class="eyebrow" id="game-count">Loading games</span></div><div class="game-grid" id="game-grid" aria-live="polite"><div class="status">Loading the game shelf…</div></div></section>
+      <section class="player" id="player" aria-labelledby="player-title"><div class="player-head"><h2 id="player-title">Game preview</h2><button class="button secondary" id="close-player" type="button">Close game</button></div><iframe id="game-frame" title="Community game" sandbox="allow-scripts allow-same-origin allow-forms allow-pointer-lock" referrerpolicy="no-referrer" allow="autoplay; fullscreen; gamepad"></iframe><div class="player-actions"><button class="button" id="create-room" type="button">Play online with friends</button><button class="button secondary" id="copy-room" type="button" hidden>Copy friend link</button><button class="button secondary" id="copy-ai" type="button" hidden>Invite an AI agent</button><button class="button secondary" id="report-game" type="button">Report this game</button></div><p class="player-hint" id="play-notice" role="status" aria-live="polite">To add multiplayer to an uploaded game, its creator must integrate the Whosaid SDK. AI play also requires the game to publish legal actions and accept agent moves.</p></section>
+      <section class="admin-panel" id="admin-panel" aria-labelledby="admin-title"><h2 id="admin-title" class="section-title">Game review</h2><p class="help">Admin-only review. The moderation key stays in this tab and is sent only in a request header.</p><div class="row"><label class="sr-only" for="admin-key">Moderation key</label><input id="admin-key" type="password" autocomplete="current-password" placeholder="Moderation key"><button id="load-pending" class="button" type="button">Load pending</button></div><div id="admin-list"></div><p id="admin-notice" class="notice" role="status" aria-live="polite"></p></section>
+    </main>
+    <footer><span>WHO SAID? · Community games</span><a href="/">Back to the main game shelf</a></footer>
+  </div>
+  <script type="module">
+    const API='/api/games';
+    const $=id=>document.getElementById(id);
+    const esc=value=>String(value??'').replace(/[&<>"']/g,char=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char]));
+    let currentGame=null, currentRoom=null;
+    const query=new URLSearchParams(location.search);
+    if(query.get('manage')==='1') $('admin-panel').classList.add('open');
+    $('toggle-upload').addEventListener('click',()=>{const open=$('upload-panel').classList.toggle('open');$('toggle-upload').setAttribute('aria-expanded',String(open));if(open)$('game-title').focus()});
+    $('upload-cancel').addEventListener('click',()=>{$('upload-panel').classList.remove('open');$('toggle-upload').setAttribute('aria-expanded','false')});
+
+    async function loadGames(){
+      const grid=$('game-grid');
+      try{
+        const response=await fetch(API,{cache:'no-store'});const data=await response.json().catch(()=>({error:'Game services are not available in this static preview.'}));
+        if(!response.ok||!Array.isArray(data.games))throw new Error(data.error||'Game services are not available in this static preview.');
+        $('game-count').textContent=`${data.games.length} ${data.games.length===1?'game':'games'}`;
+        if(!data.games.length){grid.innerHTML='<div class="status">No community games yet. Submit the first one and make the shelf yours.</div>';return}
+        grid.innerHTML=data.games.map((game,index)=>`<article class="game-card"><span class="eyebrow">Community pick · ${String(index+1).padStart(2,'0')}</span><h3>${esc(game.title)}</h3><p>${esc(game.description)}</p><button class="button" type="button" data-game="${esc(game.id)}">Play this game</button></article>`).join('');
+        grid.querySelectorAll('[data-game]').forEach(button=>button.addEventListener('click',()=>openGame(data.games.find(game=>game.id===button.dataset.game))));
+      }catch(error){grid.innerHTML=`<div class="status">${esc(error.message)} The library will be available when the game service is configured.</div>`;$('game-count').textContent='Unavailable'}
+    }
+
+    function openGame(game){
+      if(!game)return;currentGame=game;currentRoom=null;
+      $('player-title').textContent=game.title;$('game-frame').src=game.indexUrl;$('player').classList.add('open');$('player').scrollIntoView({behavior:'smooth',block:'start'});
+      $('play-notice').textContent='You are previewing this public game in an isolated frame. Multiplayer features depend on the creator integrating the Whosaid SDK.';
+      $('copy-room').hidden=true;$('copy-ai').hidden=true;
+    }
+
+    $('close-player').addEventListener('click',()=>{$('game-frame').src='about:blank';$('player').classList.remove('open');currentGame=null});
+    $('upload-form').addEventListener('submit',async event=>{
+      event.preventDefault();
+      const title=$('game-title').value.trim(),description=$('game-description').value.trim(),file=$('game-file').files[0];
+      if(!file||file.size>4*1024*1024){setUploadNotice('Choose a ZIP file no larger than 4 MB.',true);return}
+      if(!title||!description){setUploadNotice('Add a title and a short description.',true);return}
+      const id=crypto.randomUUID();const button=$('upload-submit');button.disabled=true;button.textContent='Uploading…';setUploadNotice('Sending your bundle securely to storage…');
+      try{
+        const { upload }=await import('https://esm.sh/@vercel/blob@2.9.0/client');
+        await upload(`incoming/${id}.zip`,file,{access:'public',handleUploadUrl:'/api/games/upload',clientPayload:JSON.stringify({id,title,description})});
+        setUploadNotice('Upload received. It will appear in the public shelf after review.',false,true);$('upload-form').reset();
+      }catch(error){setUploadNotice(error.message||'Upload failed. Please try again.',true)}
+      finally{button.disabled=false;button.textContent='Upload for review'}
+    });
+    function setUploadNotice(text,error=false,success=false){const el=$('upload-notice');el.textContent=text;el.className=`notice${error?' error':success?' success':''}`}
+
+    $('create-room').addEventListener('click',()=>{
+      if(!currentGame)return;
+      location.href=`/play-game.html?game=${encodeURIComponent(currentGame.id)}`;
+    });
+    async function copyButton(button,label){const url=button.dataset.url;if(!url)return;try{await navigator.clipboard.writeText(url);$('play-notice').textContent=`${label} copied. Share it with your friend or compatible AI agent.`}catch(_){window.prompt(`Copy this ${label.toLowerCase()}:`,url)}}
+    $('copy-room').addEventListener('click',()=>copyButton($('copy-room'),'Friend link'));
+    $('copy-ai').addEventListener('click',()=>copyButton($('copy-ai'),'AI invite link'));
+    $('report-game').addEventListener('click',async()=>{
+      if(!currentGame)return;const reason=prompt('What should we review about this game?');if(!reason)return;
+      try{const response=await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'report',id:currentGame.id,reason})});const data=await response.json();if(!response.ok)throw new Error(data.error);$('play-notice').textContent='Thanks. The report has been sent for review.'}catch(error){$('play-notice').textContent=error.message||'Report could not be sent.'}
+    });
+
+    const adminHeaders=()=>({'Content-Type':'application/json','x-game-moderation-secret':$('admin-key').value});
+    $('load-pending').addEventListener('click',async()=>{
+      const list=$('admin-list');list.innerHTML='<p class="help">Loading submissions…</p>';
+      try{
+        const response=await fetch(`${API}?action=admin-list`,{headers:adminHeaders(),cache:'no-store'});const data=await response.json();if(!response.ok)throw new Error(data.error||'Review access denied.');
+        const pending=data.games.filter(game=>game.status==='pending');
+        const published=data.games.filter(game=>game.status==='approved');
+        const reports=data.reports||[];
+        const pendingMarkup=pending.map(game=>`<div class="admin-row"><span><strong>${esc(game.title)}</strong><br><small>${esc(game.description)}</small></span><a class="button secondary" href="${esc(game.indexUrl)}" target="_blank" rel="noopener noreferrer">Preview</a><button type="button" data-review="approved" data-id="${esc(game.id)}">Approve</button><button class="reject" type="button" data-review="rejected" data-id="${esc(game.id)}">Reject</button></div>`).join('');
+        const publishedMarkup=published.map(game=>`<div class="admin-row"><span><strong>${esc(game.title)}</strong><br><small>Published · ${esc(game.description)}</small></span><a class="button secondary" href="${esc(game.indexUrl)}" target="_blank" rel="noopener noreferrer">Preview</a><button class="reject" type="button" data-review="hidden" data-id="${esc(game.id)}">Take down</button></div>`).join('');
+        const reportsMarkup=reports.map(report=>`<div class="admin-row"><span><strong>${esc(report.gameTitle)}</strong><br><small>${esc(report.reason)}</small></span><button class="reject" type="button" data-review="hidden" data-id="${esc(report.gameId)}">Take down</button></div>`).join('');
+        list.innerHTML=`<h3>Pending review (${pending.length})</h3>${pendingMarkup||'<p class="help">No games are waiting for review.</p>'}<h3>Public games (${published.length})</h3>${publishedMarkup||'<p class="help">No games are currently public.</p>'}<h3>Recent reports (${reports.length})</h3>${reportsMarkup||'<p class="help">No recent reports.</p>'}`;
+        list.querySelectorAll('[data-review]').forEach(button=>button.addEventListener('click',()=>reviewGame(button)));
+        $('admin-notice').textContent='Moderation queue loaded.';
+      }catch(error){list.textContent='';$('admin-notice').textContent=error.message}
+    });
+    async function reviewGame(button){
+      button.disabled=true;
+      try{const response=await fetch(API,{method:'POST',headers:adminHeaders(),body:JSON.stringify({action:'moderate',id:button.dataset.id,status:button.dataset.review})});const data=await response.json();if(!response.ok)throw new Error(data.error);button.closest('.admin-row').remove();$('admin-notice').textContent=`Submission ${data.status}.`;loadGames()}
+      catch(error){$('admin-notice').textContent=error.message;button.disabled=false}
+    }
+    loadGames();
+  </script>
+</body>
+</html>
