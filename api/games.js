@@ -7,6 +7,7 @@ const ROOM_TTL = 6 * 60 * 60;
 const MAX_PLAYERS = 8;
 const MAX_EVENT_BYTES = 5000;
 const CODE_CHARS = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789';
+const BUILT_IN_GAME_IDS = new Set(['03ecc1e7-a5a4-4a89-be17-b204f6d0eb15']);
 
 async function redis(commands) {
   if (!REDIS_URL || !REDIS_TOKEN) throw new Error('Game room storage is not configured.');
@@ -85,7 +86,7 @@ module.exports = async (req, res) => {
         if (Array.isArray(row)) for (let i = 0; i < row.length; i += 2) item[row[i]] = row[i + 1];
         else Object.assign(item, row || {});
         return { id: ids[index], title: item.title, description: item.description, indexUrl: item.indexUrl, createdAt: item.createdAt };
-      }).filter(item => item.title && item.indexUrl);
+      }).filter(item => item.title && item.indexUrl && !BUILT_IN_GAME_IDS.has(item.id));
       return res.status(200).json({ games });
     }
 
