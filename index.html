@@ -25,40 +25,118 @@
 
 <link href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Archivo:wght@500;700&display=swap" rel="stylesheet">
 <style>
-:root{--y:#FFFC00;--k:#0b0b0b}
+:root{color-scheme:light;--paper:#f8f7f2;--ink:#171714;--muted:#727169;--yellow:#ffe52c;--line:#eae8df;--card:#fffefb;--green:#d8f66b;--radius:24px}
 *{box-sizing:border-box;margin:0;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;background:var(--y);color:var(--k);font-family:Archivo,system-ui,sans-serif;font-weight:500}
-#app{min-height:100%;max-width:480px;margin:0 auto;padding:calc(24px + env(safe-area-inset-top)) 22px calc(24px + env(safe-area-inset-bottom));display:flex;flex-direction:column}
-h1,h2,.big{font-family:"Archivo Black",Impact,sans-serif;line-height:.95;letter-spacing:-.02em;text-transform:uppercase}
-h1{font-size:56px}
-h2{font-size:34px}
-.tag{font-size:12px;font-weight:700;letter-spacing:.14em;text-transform:uppercase}
+html{min-height:100%;background:var(--paper);scroll-behavior:smooth}
+body{min-height:100%;background:radial-gradient(ellipse at 50% -24%,#fff4ac 0,transparent 49%),var(--paper);color:var(--ink);font-family:Archivo,system-ui,sans-serif;font-weight:500}
+button,input,textarea{font:inherit}
+button,a{-webkit-tap-highlight-color:transparent}
+button:focus-visible,a:focus-visible,input:focus-visible,textarea:focus-visible{outline:3px solid #7770ff;outline-offset:4px}
+.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+#app{min-height:100svh;max-width:1100px;margin:0 auto;padding:24px 34px calc(38px + env(safe-area-inset-bottom))}
+h1,h2,.big,.display{font-family:"Archivo Black",Impact,sans-serif;line-height:.97;letter-spacing:-.055em;text-transform:uppercase}
+h1{font-size:clamp(54px,8.4vw,102px)}
+h2{font-size:clamp(28px,5vw,40px)}
+.tag{font-size:11px;font-weight:700;letter-spacing:.13em;text-transform:uppercase}
 .top{display:flex;justify-content:space-between;margin-bottom:12px}
 .sp{flex:1}
-.btn{display:block;width:100%;border:0;background:var(--k);color:var(--y);font-family:"Archivo Black",Impact,sans-serif;font-size:18px;text-transform:uppercase;padding:18px;border-radius:14px;margin-top:10px}
-.btn:active{transform:scale(.98)}
-.btn.alt{background:transparent;color:var(--k);border:2.5px solid var(--k)}
-.btn[disabled]{opacity:.25}
-.row{display:flex;gap:10px}
-input{flex:1;min-width:0;font:inherit;font-weight:700;font-size:18px;padding:16px;border:2.5px solid var(--k);border-radius:14px;background:#fff;color:var(--k);outline:0}
-.add{width:64px;margin:0;font-size:28px;padding:0}
-.chips{display:flex;flex-wrap:wrap;gap:8px;margin:18px 0}
-.chip{background:var(--k);color:var(--y);padding:9px 14px;border-radius:99px;font-weight:700;font-size:15px;text-transform:capitalize}
-.chip.off{background:transparent;color:var(--k);border:2px solid var(--k);padding:7px 12px}
+.masthead{height:46px;display:flex;align-items:center;justify-content:space-between;margin-bottom:31px}
+.wordmark{display:inline-flex;align-items:center;gap:9px;font-family:"Archivo Black",Impact,sans-serif;font-size:19px;letter-spacing:-1px;text-decoration:none;color:var(--ink)}
+.wordmark-mark{width:32px;height:32px;display:grid;place-items:center;border-radius:11px;background:var(--yellow);font-size:22px;transform:rotate(-6deg)}
+.mast-note,.eyebrow{color:var(--muted);font-size:12px;font-weight:700;letter-spacing:.1em;text-transform:uppercase}
+.home-intro{display:flex;align-items:center;gap:10px;margin-bottom:15px;color:var(--muted)}
+.live-dot{width:8px;height:8px;border-radius:50%;background:#7ca91e;box-shadow:0 0 0 4px #7ca91e22;animation:breathe 2s infinite}
+.lobby-hero{position:relative;display:grid;grid-template-columns:1fr .72fr;min-height:342px;overflow:hidden;border:1px solid #eee5ae;border-radius:30px;background:linear-gradient(128deg,#fff2a2 0%,#ffea6a 51%,#ffdf4e 100%);box-shadow:0 6px 24px #392c080d}
+.hero-copy{z-index:1;align-self:center;padding:40px clamp(25px,5vw,60px)}
+.hero-kicker{display:inline-flex;align-items:center;gap:8px;margin-bottom:20px;padding:8px 12px;border:1px solid #1717141c;border-radius:99px;background:#fff7d9a8;color:#474332;font-size:11px;font-weight:700;letter-spacing:.09em;text-transform:uppercase}
+.hero-copy h1{max-width:590px;font-size:clamp(52px,5vw,68px)}
+.hero-copy h1 span{display:block;color:#736206}
+.hero-description{max-width:380px;margin-top:17px;color:#57513b;font-size:15px;line-height:1.7}
+.hero-stats{display:flex;gap:9px;margin-top:23px;color:#514b38;font-size:12px;font-weight:700}
+.hero-stats span{padding:8px 11px;border:1px solid #201d1119;border-radius:99px;background:#fff8df8c}
+.hero-art{position:relative;display:grid;min-width:0;place-items:center;isolation:isolate}
+.hero-art::before,.hero-art::after{position:absolute;z-index:-1;content:"";border:1px solid #53461620;border-radius:50%;aspect-ratio:1}
+.hero-art::before{width:min(80%,290px);animation:orbit 36s linear infinite}
+.hero-art::after{width:min(62%,220px)}
+.hero-art img{width:min(77%,272px);height:auto;border-radius:36px;mix-blend-mode:multiply;filter:drop-shadow(0 15px 20px #6047001c);animation:float 5.5s ease-in-out infinite}
+.hero-spark{position:absolute;color:#9a7510;font-size:26px;animation:twinkle 3s ease-in-out infinite}
+.hero-spark.one{top:20%;right:22%}.hero-spark.two{bottom:22%;left:18%;animation-delay:1.1s}
+.section-heading{display:flex;align-items:end;justify-content:space-between;gap:14px;margin:44px 0 17px}
+.section-heading h2{font-size:27px;letter-spacing:-.045em}
+.section-heading p{margin-top:5px;color:var(--muted);font-size:13px}
+.game-grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:13px}
+.game-card{--accent:#ffec81;position:relative;display:flex;min-width:0;min-height:245px;flex-direction:column;overflow:hidden;padding:14px;border:1px solid var(--line);border-radius:21px;background:var(--card);color:var(--ink);text-decoration:none;transition:transform .24s ease,border-color .24s ease,box-shadow .24s ease}
+.game-card:hover{z-index:1;transform:translateY(-5px);border-color:#ddd6bc;box-shadow:0 15px 36px #25211112}
+.game-card.primary{--accent:#fff0a3;grid-column:span 2;min-height:258px;background:linear-gradient(143deg,#fffefa 15%,#fff5c6 100%)}
+.game-card-card{--accent:#ffc8b2}.game-card-sport{--accent:#cdeefe}.game-card-challenge{--accent:#e1efbb}
+.card-art{position:relative;display:grid;height:125px;flex:none;place-items:center;overflow:hidden;border-radius:14px;background:var(--accent)}
+.primary .card-art{position:absolute;inset:0 0 0 auto;width:52%;height:100%;border-radius:0 20px 20px 0;background:linear-gradient(135deg,#fff8d8,#ffeca0)}
+.card-art::after{position:absolute;inset:0;background:radial-gradient(ellipse at 50% 120%,#fff9 0,transparent 65%);content:"";pointer-events:none}
+.card-art img{width:100%;height:100%;object-fit:cover;mix-blend-mode:multiply;transition:transform .35s ease}
+.game-card:hover .card-art img{transform:scale(1.055)}
+.primary .card-art img{width:88%;height:88%;border-radius:23px;object-fit:cover}
+.card-index{position:absolute;top:10px;left:10px;z-index:1;display:grid;width:26px;height:26px;place-items:center;border:1px solid #17171412;border-radius:50%;background:#ffffffd9;color:#3c3930;font-size:10px;font-weight:700}
+.card-body{display:flex;flex:1;align-items:center;justify-content:space-between;gap:7px;padding:13px 2px 1px}
+.card-body h3{font-family:"Archivo Black",Impact,sans-serif;font-size:15px;letter-spacing:-.035em;text-transform:uppercase}
+.card-body p{margin-top:5px;color:var(--muted);font-size:11px;line-height:1.45}
+.card-arrow{display:grid;width:33px;height:33px;flex:none;place-items:center;border:1px solid var(--line);border-radius:50%;background:#fff;font-size:17px;transition:transform .2s ease,background .2s ease}
+.game-card:hover .card-arrow{transform:rotate(-45deg);background:var(--yellow)}
+.primary .card-body{position:relative;z-index:1;max-width:53%;align-items:flex-end;margin-top:auto;padding:17px 8px 7px}
+.primary .card-body h3{font-size:clamp(18px,2.5vw,27px)}
+.primary .card-body p{max-width:220px}
+.primary .card-art{z-index:0}
+.play-panel{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px;margin-top:32px;padding:23px;border:1px solid var(--line);border-radius:23px;background:#fffefb}
+.play-panel-heading{display:flex;align-items:center;gap:11px;margin-bottom:14px}
+.play-panel-heading h2{font-size:20px;letter-spacing:-.04em}
+.panel-number{display:grid;width:34px;height:34px;flex:none;place-items:center;border-radius:11px;background:var(--yellow);font-size:14px;font-weight:700}
+.row{display:flex;gap:9px}
+input{width:100%;min-width:0;padding:13px 14px;border:1px solid #e7e4da;border-radius:12px;background:#fdfcf9;color:var(--ink);font-size:14px}
+input::placeholder,.chbox::placeholder{color:#9a978d}
+.add{width:48px;flex:none;display:grid;place-items:center;padding:0;border:0;border-radius:12px;background:var(--ink);color:white;font-size:24px;cursor:pointer;transition:transform .2s,background .2s}
+.add:hover{transform:scale(1.05);background:#38372f}
+.chips{display:flex;flex-wrap:wrap;gap:7px;margin:12px 0}
+.chip{border:1px solid var(--ink);border-radius:99px;background:var(--ink);color:#fff;padding:7px 11px;font-size:12px;font-weight:700;text-transform:capitalize;cursor:pointer;transition:transform .17s ease,background .17s ease}
+.chip:hover{transform:translateY(-1px)}
+.chip.off{border:1px solid #e7e4da;background:transparent;color:#55534a;padding:7px 11px}
+.mode-chips .chip:not(.off){border-color:#d7ba22;background:var(--yellow);color:var(--ink)}
+.mode-chips{gap:6px;margin:9px 0 0}
+.microcopy{margin-top:12px;color:var(--muted);font-size:12px;line-height:1.55}
+.play-settings{display:flex;flex-direction:column;gap:13px}
+.setting-label{display:block;color:var(--muted);font-size:10px;font-weight:700;letter-spacing:.11em;text-transform:uppercase}
+.chbox{display:block;width:100%;margin-top:7px;padding:11px 12px;resize:vertical;border:1px solid #e7e4da;border-radius:12px;background:#fdfcf9;color:var(--ink);font-family:inherit;font-size:13px;line-height:1.5}
+.adult-toggle{width:fit-content;display:flex;align-items:center;gap:8px;padding:8px 11px;border:1px solid #e7e4da;border-radius:99px;background:transparent;color:#55534a;font-size:11px;font-weight:700;cursor:pointer}
+.adult-toggle[aria-pressed="true"]{border-color:#ebc4bd;background:#fff0ed;color:#873a2d}
+.btn{display:block;width:100%;margin-top:9px;padding:15px 18px;border:0;border-radius:13px;background:var(--ink);color:#fff;font-family:"Archivo Black",Impact,sans-serif;font-size:15px;letter-spacing:.01em;text-align:center;text-decoration:none;text-transform:uppercase;cursor:pointer;transition:transform .2s ease,background .2s ease,box-shadow .2s ease}
+.btn:hover:not(:disabled){transform:translateY(-2px);background:#36352e;box-shadow:0 7px 17px #17171418}
+.btn:active:not(:disabled){transform:scale(.985)}
+.btn.alt{margin-top:8px;border:1px solid var(--line);background:#fffefa;color:var(--ink);font-family:Archivo,system-ui,sans-serif;font-size:12px;font-weight:700;text-transform:none}
+.btn[disabled]{opacity:.43;cursor:not-allowed}
 .prog{display:flex;gap:4px;margin-bottom:22px}
-.prog i{flex:1;height:5px;border-radius:3px;background:rgba(0,0,0,.18)}
-.prog i.on{background:var(--k)}
-.q{font-size:38px;margin:6px 0 24px}
-.pick{background:#fff;border:2.5px solid var(--k);border-radius:14px;padding:17px 18px;font:inherit;font-weight:700;font-size:20px;text-align:left;margin-bottom:10px;color:var(--k);display:block;width:100%}
-.pick:active,.pick.sel{background:var(--k);color:var(--y)}
-.li{padding:14px 0;border-bottom:2px solid rgba(0,0,0,.15)}
-.li small{display:block;font-weight:700;font-size:12px;letter-spacing:.06em;text-transform:uppercase;opacity:.65;margin-bottom:4px}
-.li b{font-family:"Archivo Black",Impact,sans-serif;font-size:24px;text-transform:uppercase}
+.prog i{flex:1;height:5px;border-radius:3px;background:#17171426}
+.prog i.on{background:var(--ink)}
+.q{font-size:clamp(30px,6vw,48px);margin:6px 0 24px}
+.pick{display:block;width:100%;margin-bottom:10px;padding:17px 18px;border:1px solid var(--line);border-radius:14px;background:var(--card);color:var(--ink);font-size:18px;font-weight:700;text-align:left;cursor:pointer;transition:background .2s,color .2s,transform .2s}
+.pick:hover,.pick.sel{transform:translateY(-2px);border-color:var(--ink);background:var(--ink);color:var(--yellow)}
+.li{padding:14px 0;border-bottom:1px solid var(--line)}
+.li small{display:block;margin-bottom:4px;color:var(--muted);font-size:12px;font-weight:700;letter-spacing:.06em;text-transform:uppercase}
+.li b{font-family:"Archivo Black",Impact,sans-serif;font-size:21px;text-transform:uppercase}
 .sum{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0 6px}
-.err{font-size:13px;font-weight:700;margin-top:14px;color:#5a0000}
-.chbox{width:100%;font:inherit;font-weight:700;font-size:16px;padding:14px 16px;border:2.5px solid var(--k);border-radius:14px;background:#fff;color:var(--k);outline:0;resize:none;margin-top:8px}
-.fade{animation:f .35s ease both}
-@keyframes f{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.err{margin-top:14px;color:#873a2d;font-size:13px;font-weight:700}
+.info-grid{display:grid;grid-template-columns:1.2fr .8fr;gap:22px;margin-top:37px;padding-top:22px;border-top:1px solid var(--line)}
+.info-grid h2{font-size:15px;letter-spacing:-.025em}
+.info-grid p{max-width:560px;margin-top:7px;color:var(--muted);font-size:13px;line-height:1.75}
+.info-grid a{color:var(--ink);font-weight:700;text-underline-offset:3px}
+footer{display:flex;justify-content:space-between;gap:12px;margin-top:30px;padding-top:14px;border-top:1px solid var(--line);color:var(--muted);font-size:11px}
+.fade{animation:enter .42s cubic-bezier(.2,.75,.25,1) both}
+@keyframes enter{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes float{0%,100%{transform:translateY(0) rotate(-2deg)}50%{transform:translateY(-10px) rotate(1deg)}}
+@keyframes orbit{to{transform:rotate(360deg)}}
+@keyframes breathe{0%,100%{box-shadow:0 0 0 4px #7ca91e22}50%{box-shadow:0 0 0 7px #7ca91e11}}
+@keyframes twinkle{0%,100%{opacity:.45;transform:scale(.85)}50%{opacity:1;transform:scale(1.13)}}
+@media(min-width:850px){#app{padding-top:31px}.game-grid{gap:16px}.game-card{min-height:270px;padding:16px}.card-art{height:145px}.game-card.primary{min-height:278px}}
+@media(max-width:650px){#app{padding:16px 18px calc(30px + env(safe-area-inset-bottom))}.masthead{margin-bottom:20px}.lobby-hero{grid-template-columns:1fr;min-height:0;overflow:hidden}.hero-copy{z-index:1;padding:26px 23px 10px}.hero-copy h1{font-size:clamp(43px,11vw,52px)}.hero-copy h1 span{display:inline}.hero-art{z-index:0;position:absolute;top:24%;right:0;bottom:auto;width:30%;height:28%;opacity:.18;pointer-events:none}.hero-art::before{width:88%}.hero-art::after{width:66%}.hero-art img{width:90%;border-radius:19px}.hero-spark.one{top:5%;right:16%}.hero-spark.two{bottom:10%;left:8%}.hero-description{max-width:290px;margin-top:11px;font-size:13px}.hero-stats{gap:6px;margin-top:16px;font-size:10px}.hero-stats span{padding:7px 9px}.section-heading{margin-top:31px}.game-grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}.game-card{min-height:208px;padding:10px;border-radius:17px}.game-card.primary{grid-column:span 2;min-height:195px}.card-art{height:103px;border-radius:11px}.primary .card-art{width:48%}.primary .card-art img{width:91%;height:80%;border-radius:18px}.primary .card-body{max-width:57%;padding:14px 4px 5px}.primary .card-body h3{font-size:18px}.card-body h3{font-size:13px}.card-body p{font-size:10px}.card-arrow{width:29px;height:29px}.play-panel{grid-template-columns:1fr;gap:19px;margin-top:23px;padding:17px;border-radius:18px}.play-settings{gap:11px}.info-grid{grid-template-columns:1fr;gap:16px;margin-top:26px}.mast-note{font-size:10px}}
+@media(max-width:380px){#app{padding-left:14px;padding-right:14px}.hero-copy{padding-left:18px;padding-right:15px}.hero-copy h1{font-size:56px}.hero-stats{font-size:9px}.hero-stats span{padding:6px 7px}.game-card{min-height:194px}.primary .card-body h3{font-size:16px}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{scroll-behavior:auto!important;animation-duration:.01ms!important;animation-iteration-count:1!important;transition-duration:.01ms!important}}
 </style>
 <title>Whosaid: Free Party Games to Play With Friends Online</title>
 <meta name="description" content="Most Likely To is a free online party game. Vote on your friends with AI-written questions, share the results card and play on your phone.">
@@ -139,31 +217,27 @@ function prog(){return `<div class="prog">${Array.from({length:ROUNDS},(_,k)=>`<
 
 function home(){
   const n=S.players.length;
-  app.innerHTML=`<div class="fade" style="display:flex;flex-direction:column;flex:1">
-    <div class="tag">Who Said · Party game · 2+ players</div>
-    <h1 style="margin:14px 0 10px">Most<br>Likely<br>To</h1>
-    <p style="max-width:300px;margin-bottom:26px">Read the question out loud. Argue. Tap who it is.</p>
-    <div class="row"><input id="nm" maxlength="14" placeholder="Add a player" autocomplete="off"><button class="btn add" onclick="addP()">+</button></div>
-    <div class="chips">${S.players.map((p,k)=>`<span class="chip" style="text-transform:none" onclick="rmP(${k})">${esc(p)} ×</span>`).join('')}</div>
-    <div class="tag">Questions</div>
-    <div class="chips" style="margin:10px 0 4px">${MODES.map(m=>`<span class="chip ${S.mode===m?'':'off'}" onclick="setMode('${m}')">${m}</span>`).join('')}</div>
-    <div class="sp"></div>
-    <div class="tag" style="margin-top:8px">AI character (optional)</div>
-    <textarea id="ch" class="chbox" rows="2" maxlength="200" placeholder="e.g. a sarcastic Lagos bus conductor" oninput="setChar(this.value)">${esc(S.char)}</textarea>
-    <div class="chips" style="margin:12px 0 0"><span class="chip ${S.adult?'':'off'}" style="text-transform:none" onclick="toggle18()">18+ mode ${S.adult?'on':'off'}</span></div>
-    <a class="btn alt" style="text-align:center;text-decoration:none" href="/room.html">Play online with friends</a>
-    <a class="btn alt" style="text-align:center;text-decoration:none" href="/push.html">Pushup challenge</a>
-    <a class="btn alt" style="text-align:center;text-decoration:none" href="/hockey.html">Air hockey</a>
-<a class="btn alt" style="text-align:center;text-decoration:none" href="/Whot.html">Whot Card Game</a>
-    <button class="btn" ${n<2?'disabled':''} onclick="start()">${n<2?`Need ${2-n} more`:'Start'}</button>
-    <section style="margin-top:26px">
-      <h2 style="font-size:22px">What is Who Said?</h2>
-      <p style="margin-top:8px;font-size:15px;line-height:1.5">Who Said is a free party game for friend groups. Add your players, read the question out loud, argue about it, and tap the name that fits. Six rounds, then a results card you can post to your story. No download, no account.</p>
-      <h2 style="font-size:22px;margin-top:20px">Is it free?</h2>
-      <p style="margin-top:8px;font-size:15px;line-height:1.5">Yes. No signup, no ads, no paywall. Also playable in <a href="/fa/">فارسی</a>.</p>
+  const modes=MODES.map(m=>`<button class="chip ${S.mode===m?'':'off'}" type="button" aria-pressed="${S.mode===m}" onclick="setMode('${m}')">${m}</button>`).join('');
+  const gameCards=[
+    {href:'#play',cls:'primary',image:'/images/logos/who-said-logo.jpg',alt:'Who Said party games',number:'01',title:'Most likely to',description:'One question. Zero chill. Your friends decide.',arrow:'↗'},
+    {href:'/Whot.html',cls:'game-card-card',image:'/images/logos/whot-logo.jpg',alt:'Whot card game',number:'02',title:'Whot!',description:'Play your cards. Call the next move.',arrow:'↗'},
+    {href:'/hockey.html',cls:'game-card-sport',image:'/images/logos/hockey-logo.jpg',alt:'Air hockey',number:'03',title:'Air hockey',description:'Head-to-head. May the fastest win.',arrow:'↗'},
+    {href:'/push.html',cls:'game-card-challenge',image:'/images/logos/pushup-logo.jpg',alt:'Pushup challenge',number:'04',title:'Push-up challenge',description:'Bring your best. Back it up.',arrow:'↗'}
+  ];
+  app.innerHTML=`<main class="fade">
+    <header class="masthead"><a class="wordmark" href="/" aria-label="Who Said home"><span class="wordmark-mark" aria-hidden="true">?</span> WHO SAID</a><span class="mast-note">Your group chat, but louder.</span></header>
+    <div class="home-intro"><span class="live-dot" aria-hidden="true"></span><span class="eyebrow">The group chat has entered the room</span></div>
+    <section class="lobby-hero" aria-labelledby="welcome-title">
+      <div class="hero-copy"><span class="hero-kicker">A little friendly chaos <span aria-hidden="true">✳</span></span><h1 id="welcome-title">Let the<br>group chat<br><span>decide.</span></h1><p class="hero-description">Hot takes, questionable accusations, and just enough friendly rivalry. Pick a game and make some memories.</p><div class="hero-stats"><span>✳ &nbsp;Free to play</span><span>↗ &nbsp;No signup</span><span>☻ &nbsp;Better together</span></div></div>
+      <div class="hero-art" aria-hidden="true"><span class="hero-spark one">✳</span><span class="hero-spark two">✳</span><img src="/images/logos/who-said-logo.jpg" alt="" fetchpriority="high"></div>
     </section>
-  </div>`;
-  document.getElementById('nm').addEventListener('keydown',e=>{if(e.key==='Enter')addP()});
+    <section aria-labelledby="games-title"><div class="section-heading"><div><h2 id="games-title">Pick your kind of chaos</h2><p>Four games. One very competitive group.</p></div><span class="eyebrow">The game shelf · 04</span></div><div class="game-grid">${gameCards.map(game=>`<a class="game-card ${game.cls}" href="${game.href}" aria-label="Play ${game.title}. ${game.description}"><div class="card-art"><span class="card-index">${game.number}</span><img src="${game.image}" alt="${game.alt}" loading="lazy"></div><div class="card-body"><div><h3>${game.title}</h3><p>${game.description}</p></div><span class="card-arrow" aria-hidden="true">${game.arrow}</span></div></a>`).join('')}</div></section>
+    <section class="play-panel" id="play" aria-label="Set up a Most Likely To game"><div class="play-players"><div class="play-panel-heading"><span class="panel-number">01</span><div><h2>Get the group in</h2><p class="microcopy" style="margin-top:3px">Add 2–12 friends to play.</p></div></div><form class="row" id="player-form"><label class="sr-only" for="nm">Add a player</label><input id="nm" maxlength="14" placeholder="Your friend’s name" autocomplete="off" aria-describedby="player-hint"><button class="add" type="submit" aria-label="Add player">+</button></form><p id="player-hint" class="microcopy">${n} ${n===1?'player':'players'} in the game · click a name to remove</p><div class="chips" aria-label="Players">${S.players.map((p,k)=>`<button class="chip" type="button" aria-label="Remove ${esc(p)} from game" onclick="rmP(${k})">${esc(p)} ×</button>`).join('')}</div><div class="eyebrow">Pick your questions</div><div class="chips mode-chips" aria-label="Question style">${modes}</div></div>
+    <div class="play-settings"><div class="play-panel-heading"><span class="panel-number">02</span><div><h2>Make it yours</h2><p class="microcopy" style="margin-top:3px">Optional little plot twist.</p></div></div><label class="setting-label" for="ch">Give your questions a character<textarea id="ch" class="chbox" rows="2" maxlength="200" placeholder="e.g. a sarcastic Lagos bus conductor" oninput="setChar(this.value)">${esc(S.char)}</textarea></label><button class="adult-toggle" type="button" aria-pressed="${S.adult}" onclick="toggle18()">18+ mode <span aria-hidden="true">·</span> ${S.adult?'On':'Off'}</button><div class="sp"></div><button class="btn" ${n<2?'disabled':''} onclick="start()">${n<2?`Add ${2-n} more ${2-n===1?'friend':'friends'}`:'Start the group chat'}</button><a class="btn alt" href="/room.html">Want to play online with friends? &nbsp;↗</a></div></section>
+    <section class="info-grid" aria-label="About Who Said"><div><h2>Good friends. Bad takes. Great games.</h2><p>Who Said is a free home for games made better by your friends. Add your group, choose your kind of question, and let the friendly accusations commence. No downloads, no signups; just pass the phone around and enjoy six rounds together.</p></div><div><h2>Made for everybody.</h2><p>Free to play and easy to share. Prefer Persian? Take a look at the <a href="/fa/">فارسی version</a>.</p></div></section>
+    <footer><span>WHO SAID? &nbsp; A good time, guaranteed-ish.</span><span>Pick a game. Pick on your friends.</span></footer>
+  </main>`;
+  document.getElementById('player-form').addEventListener('submit',e=>{e.preventDefault();addP()});
 }
 function setChar(v){S.char=v;try{localStorage.setItem('mlt_char',v)}catch(_){}}
 function toggle18(){
