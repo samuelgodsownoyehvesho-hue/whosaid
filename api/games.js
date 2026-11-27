@@ -85,7 +85,7 @@ module.exports = async (req, res) => {
         const item = {};
         if (Array.isArray(row)) for (let i = 0; i < row.length; i += 2) item[row[i]] = row[i + 1];
         else Object.assign(item, row || {});
-        return { id: ids[index], title: item.title, description: item.description, indexUrl: item.indexUrl, createdAt: item.createdAt };
+        return { id: ids[index], title: item.title, description: item.description, indexUrl: item.indexUrl, coverUrl: item.coverUrl, createdAt: item.createdAt };
       }).filter(item => item.title && item.indexUrl && !BUILT_IN_GAME_IDS.has(item.id));
       return res.status(200).json({ games });
     }
@@ -102,7 +102,7 @@ module.exports = async (req, res) => {
         if (Array.isArray(row)) for (let i = 0; i < row.length; i += 2) item[row[i]] = row[i + 1];
         else Object.assign(item, row || {});
         gameNames.set(ids[index], item.title || 'Untitled game');
-        return { id: ids[index], title: item.title, description: item.description, status: item.status, indexUrl: item.indexUrl, createdAt: item.createdAt };
+        return { id: ids[index], title: item.title, description: item.description, status: item.status, indexUrl: item.indexUrl, coverUrl: item.coverUrl, createdAt: item.createdAt };
       });
       const reportRows = reportIds.length ? await redis(reportIds.map(id => ['HGETALL', 'game-report:' + id])) : [];
       const reports = reportRows.map((row, index) => {
@@ -124,14 +124,19 @@ module.exports = async (req, res) => {
       if (!id || !status) return bad(400, 'Invalid moderation request.');
       const [exists] = await redis([['EXISTS', 'game:' + id]]);
       if (!exists) return bad(404, 'Game not found.');
+      if (status === 'approved') {
+        const [coverUrl] = await redis([['HGET', 'game:' + id, 'coverUrl']]);
+        if (!coverUrl) return bad(400, 'Add a cover image before publishing this game.');
+      }
       const commands = [['HSET', 'game:' + id, 'status', status, 'reviewedAt', String(Date.now())]];
       if (status === 'approved') commands.push(['SADD', 'games:approved', id]);
       else commands.push(['SREM', 'games:approved', id]);
       await redis(commands);
       if (status !== 'approved') {
-        const [rawFiles] = await redis([['HGET', 'game:' + id, 'files']]);
+        const [rawFiles, coverUrl] = await redis([['HGET', 'game:' + id, 'files'], ['HGET', 'game:' + id, 'coverUrl']]);
         let urls = [];
         try { urls = JSON.parse(rawFiles || '[]').map(file => new URL(file.url)).filter(url => url.protocol === 'https:' && url.hostname.endsWith('.public.blob.vercel-storage.com') && url.pathname.includes('/games/' + id + '/')).map(url => url.href); } catch (_) {}
+        try { const cover = new URL(coverUrl); if (cover.protocol === 'https:' && cover.hostname.endsWith('.public.blob.vercel-storage.com')) urls.push(cover.href); } catch (_) {}
         if (urls.length) await del(urls);
       }
       return res.status(200).json({ ok: true, status });
