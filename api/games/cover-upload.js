@@ -57,9 +57,13 @@ module.exports = async (req, res) => {
       onBeforeGenerateToken: async (pathname, clientPayload) => {
         const metadata = cleanPayload(clientPayload);
         if (pathname !== `incoming-covers/${metadata.id}.${metadata.extension}`) throw new Error('Invalid cover upload path.');
+        const [exists] = await redis([['EXISTS', 'game:' + metadata.id]]);
+        if (exists) throw new Error('This upload ID has already been used.');
         const ip = String(req.headers['x-forwarded-for'] || req.socket?.remoteAddress || 'unknown').split(',')[0].trim().replace(/[^a-zA-Z0-9:._-]/g, '').slice(0, 80);
         const [count] = await redis([['INCR', 'game-cover-rate:' + ip], ['EXPIRE', 'game-cover-rate:' + ip, 3600]]);
         if (Number(count) > 5) throw new Error('Cover upload limit reached. Try again in an hour.');
+        const [reserved] = await redis([['SET', 'game-cover-lock:' + metadata.id, '1', 'NX', 'EX', 600]]);
+        if (reserved !== 'OK') throw new Error('This cover upload is already in progress.');
         return {
           allowedContentTypes: [COVER_TYPES[metadata.extension]],
           maximumSizeInBytes: MAX_COVER_BYTES,
@@ -71,7 +75,7 @@ module.exports = async (req, res) => {
         const metadata = cleanPayload(tokenPayload);
         const url = new URL(blob.url);
         if (url.protocol !== 'https:' || !url.hostname.endsWith('.public.blob.vercel-storage.com')) throw new Error('Cover storage returned an invalid URL.');
-        await redis([['HSET', 'game:' + metadata.id, 'coverUrl', url.href, 'coverType', COVER_TYPES[metadata.extension]]]);
+        await redis([['HSET', 'game:' + metadata.id, 'coverUrl', url.href, 'coverType', COVER_TYPES[metadata.extension]], ['DEL', 'game-cover-lock:' + metadata.id]]);
       },
     });
     return res.status(200).json(response);
