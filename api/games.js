@@ -91,8 +91,10 @@ module.exports = async (req, res) => {
 
     if (action === 'admin-list' && req.method === 'GET') {
       if (!validAdmin(req)) return bad(401, 'Moderation access denied.');
-      const [ids, reportIds] = await redis([['SMEMBERS', 'games:all'], ['SMEMBERS', 'game-reports']]);
-      const rows = await redis((ids || []).map(id => ['HGETALL', 'game:' + id]));
+      const [rawIds, rawReportIds] = await redis([['SMEMBERS', 'games:all'], ['SMEMBERS', 'game-reports']]);
+      const ids = Array.isArray(rawIds) ? rawIds : [];
+      const reportIds = Array.isArray(rawReportIds) ? rawReportIds : [];
+      const rows = ids.length ? await redis(ids.map(id => ['HGETALL', 'game:' + id])) : [];
       const gameNames = new Map();
       const games = rows.map((row, index) => {
         const item = {};
@@ -101,7 +103,7 @@ module.exports = async (req, res) => {
         gameNames.set(ids[index], item.title || 'Untitled game');
         return { id: ids[index], title: item.title, description: item.description, status: item.status, indexUrl: item.indexUrl, createdAt: item.createdAt };
       });
-      const reportRows = await redis((reportIds || []).map(id => ['HGETALL', 'game-report:' + id]));
+      const reportRows = reportIds.length ? await redis(reportIds.map(id => ['HGETALL', 'game-report:' + id])) : [];
       const reports = reportRows.map((row, index) => {
         const item = {};
         if (Array.isArray(row)) for (let i = 0; i < row.length; i += 2) item[row[i]] = row[i + 1];

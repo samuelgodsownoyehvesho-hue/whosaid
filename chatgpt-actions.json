@@ -1,0 +1,92 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "Whosaid Game Player",
+    "description": "Read game state and submit legal moves for a single Whosaid room. Configure the room's AI invite token as the Bearer API key in this GPT's Action authentication settings. Tokens are room-scoped and expire with the room.",
+    "version": "1.0.0"
+  },
+  "servers": [
+    { "url": "https://whosaid.vercel.app" }
+  ],
+  "security": [{ "roomInvite": [] }],
+  "components": {
+    "securitySchemes": {
+      "roomInvite": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "Whosaid room AI invite token"
+      }
+    },
+    "schemas": {
+      "GameMove": {
+        "type": "object",
+        "description": "An exact legal action object returned by getGameState.",
+        "additionalProperties": true
+      },
+      "GameStateResponse": {
+        "type": "object",
+        "properties": {
+          "game": { "type": "object", "properties": { "id": { "type": "string" }, "title": { "type": "string" }, "url": { "type": "string" } } },
+          "room": { "type": "string" },
+          "players": { "type": "array", "items": { "type": "object", "properties": { "id": { "type": "string" }, "name": { "type": "string" } } } },
+          "agentState": {
+            "type": ["object", "null"],
+            "properties": {
+              "state": { "description": "Game-provided observation for the AI player." },
+              "legalActions": { "type": "array", "items": { "$ref": "#/components/schemas/GameMove" } }
+            }
+          }
+        }
+      }
+    }
+  },
+  "paths": {
+    "/api/games": {
+      "get": {
+        "operationId": "getGameState",
+        "summary": "Read the current game state and legal actions",
+        "description": "Call before every move. Only choose a move exactly matching an item in agentState.legalActions.",
+        "parameters": [
+          { "name": "action", "in": "query", "required": true, "schema": { "type": "string", "enum": ["agent-state"] } },
+          { "name": "code", "in": "query", "required": true, "schema": { "type": "string", "pattern": "^[A-Z0-9]{5}$" }, "description": "Five-character room code from the invitation." }
+        ],
+        "responses": {
+          "200": {
+            "description": "Current game state, players, and legal actions.",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/GameStateResponse" } } }
+          },
+          "401": { "description": "Invalid or expired room invite." },
+          "429": { "description": "Polling limit reached; wait before retrying." }
+        }
+      },
+      "post": {
+        "operationId": "submitGameMove",
+        "summary": "Submit a legal game move",
+        "description": "The server validates that the move exactly matches one of the latest legalActions. Never invent or alter an action.",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "action": { "type": "string", "enum": ["agent-move"] },
+                  "code": { "type": "string", "pattern": "^[A-Z0-9]{5}$", "description": "Five-character room code from the invitation." },
+                  "move": { "$ref": "#/components/schemas/GameMove" }
+                },
+                "required": ["action", "code", "move"],
+                "additionalProperties": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": { "description": "Move accepted." },
+          "400": { "description": "Move is invalid or not in the latest legal action list." },
+          "401": { "description": "Invalid or expired room invite." },
+          "429": { "description": "Move limit reached; wait before retrying." }
+        }
+      }
+    }
+  }
+}
