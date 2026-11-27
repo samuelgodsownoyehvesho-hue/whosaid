@@ -90,7 +90,7 @@ const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
 const ls={get:k=>{try{return localStorage.getItem(k)}catch(_){return null}},set:(k,v)=>{try{localStorage.setItem(k,v)}catch(_){}}};
 const cleanName=s=>String(s||'').replace(/[^\p{L}\p{N} '.-]/gu,'').trim().slice(0,12);
-const SB_URL='PASTE_SUPABASE_URL',SB_KEY='PASTE_SUPABASE_PUBLISHABLE_KEY';
+const ROOM_API='/api/ludo';
 const SEAT=[{n:'Red',css:'#c9352c',hex:0xc9352c},{n:'Green',css:'#1e8f55',hex:0x1e8f55},{n:'Yellow',css:'#f2b01e',hex:0xf2b01e},{n:'Blue',css:'#2a5bd7',hex:0x2a5bd7}];
 
 //#ENGINE-START
@@ -525,12 +525,9 @@ function again(){
 }
 function cleanup(bye){
   loopTok++;started=false;
-  if(ch){
-    if(bye!==false){try{send({k:'bye'})}catch(_){}}
-    try{sb.removeChannel(ch)}catch(_){}
-    ch=null;
-  }
+  if(code&&bye!==false){try{send({k:'bye'})}catch(_){}}
   clearInterval(beatT);beatT=0;
+  clearInterval(netTimer);netTimer=0;netPolling=false;
   role='menu';S=null;lobby=null;pend=null;rollSent=pickSent=false;
   $('hud').hidden=true;$('dock').hidden=true;
   if(R)idleBoard();
@@ -574,26 +571,58 @@ function wireInput(){
   });
 }
 
-// ===== network (Supabase Realtime, host runs the game)
-let sb=null,ch=null,cid=Math.random().toString(36).slice(2,8),code='',lobby=null,lastSeen={},lastHB=0,lastPing=0,lastJoin=0,joinStart=0,hostSeen=0,lastRev=-1,beatT=0,joinName='',lobbySig='';
-function loadSB(){
-  return new Promise((res,rej)=>{
-    if(window.supabase)return res();
-    const s=document.createElement('script');
-    s.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.91.0';
-    s.onload=res;s.onerror=()=>rej(new Error('Could not load the online library. Check your connection.'));
-    document.head.appendChild(s);
+// ===== network (host-authoritative room API)
+let cid=Math.random().toString(36).slice(2,8),code='',lobby=null,lastSeen={},lastHB=0,lastPing=0,lastJoin=0,joinStart=0,hostSeen=0,lastRev=-1,beatT=0,joinName='',lobbySig='';
+let netCursor=0,netBootstrap=null,netTimer=0,netQueue=Promise.resolve(),netPolling=false,netErrorAt=0,roomToken='';
+async function roomRequest(method,payload,cursor,bootstrap){
+  const url=method==='GET'?ROOM_API+'?code='+encodeURIComponent(code)+'&cursor='+encodeURIComponent(cursor||0)+(bootstrap?'&bootstrap=1':''):ROOM_API;
+  const response=await fetch(url,method==='GET'?{cache:'no-store'}:{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(payload)});
+  const data=await response.json().catch(()=>({}));
+  if(!response.ok)throw Object.assign(new Error(data.error||'Room request failed ('+response.status+').'),{status:response.status});
+  return data;
+}
+async function connect(c,host=false){
+  code=c;roomToken='';
+  if(host){const data=await roomRequest('POST',{action:'create',code,cid});roomToken=data.token||'';netCursor=0;netBootstrap=null;return}
+  const data=await roomRequest('GET',null,0,true);
+  netCursor=data.next||0;netBootstrap=data.snapshot||null;
+}
+function send(o){
+  if(!code)return Promise.resolve();
+  const message=Object.assign({c:cid},o),action=message.hb?'snapshot':'send';
+  netQueue=netQueue.then(()=>roomRequest('POST',{action,code,cid,message,token:roomToken})).catch(error=>{
+    console.error('[v0] Ludo room send failed:',error.message);
+    if(error.status===404&&role!=='menu')leaveOnline('This room no longer exists. Ask the host for a new link.');
+  });
+  return netQueue;
+}
+async function pollNetwork(){
+  if(netPolling||role==='menu')return;
+  netPolling=true;
+  try{
+    const data=await roomRequest('GET',null,netCursor,false);
+    netErrorAt=0;
+    if(role==='host')for(const player of data.active||[])lastSeen[player]=performance.now();
+    for(const event of data.events||[]){netCursor=event.index+1;onNet(event.message)}
+    if(role==='guest'&&data.hostActive&&data.snapshot){
+      if(data.snapshot.lobby)onNet(data.snapshot.lobby);
+      if(data.snapshot.state)onNet(data.snapshot.state);
+    }
+  }catch(error){
+    if(error.status===404){leaveOnline(error.message)}
+    else{
+      if(!netErrorAt)netErrorAt=Date.now();
+      if(Date.now()-netErrorAt>12000)leaveOnline('Lost connection to the room. Ask the host for a new link.');
+    }
+  }finally{netPolling=false}
+}
+function heartbeat(){
+  if(!code)return;
+  roomRequest('POST',{action:'heartbeat',code,cid,token:roomToken}).catch(error=>{
+    if(error.status===404&&role!=='menu')leaveOnline(error.message);
   });
 }
-async function connect(c){
-  if(SB_URL.indexOf('PASTE')===0)throw new Error('Online play is not set up yet.');
-  await loadSB();
-  sb=sb||window.supabase.createClient(SB_URL,SB_KEY,{realtime:{params:{eventsPerSecond:20}}});
-  ch=sb.channel('ludo-'+c,{config:{broadcast:{self:false}}});
-  ch.on('broadcast',{event:'m'},e=>onNet(e.payload));
-  await new Promise((res,rej)=>{ch.subscribe(st=>{if(st==='SUBSCRIBED')res();else if(st==='CHANNEL_ERROR'||st==='TIMED_OUT')rej(new Error('Could not connect ('+st+').'))})});
-}
-function send(o){if(ch)ch.send({type:'broadcast',event:'m',payload:Object.assign({c:cid},o)})}
+function startNetwork(){clearInterval(netTimer);pollNetwork();netTimer=setInterval(pollNetwork,800)}
 const sendLobby=()=>send({k:'lobby',L:lobby});
 function seatOfCid(c){return lobby?lobby.seats.findIndex(s=>s.cid===c):-1}
 function onNet(m){
@@ -623,7 +652,7 @@ function onNet(m){
     }
   }else if(role==='guest'){
     if(m.to&&m.to!==cid)return;
-    hostSeen=now;
+    if(lobby&&lobby.seats[0]&&m.c===lobby.seats[0].cid)hostSeen=now;
     if(m.k==='lobby'){
       lobby=m.L;
       const i=seatOfCid(cid);
@@ -632,7 +661,7 @@ function onNet(m){
       if(!started)lobbyScreen();
     }else if(m.k==='st'){
       if(mySeat<0||!m.S)return;
-      if(m.hb&&m.S.rev<=lastRev)return;
+      if(m.S.rev<=lastRev)return;
       lastRev=Math.max(lastRev,m.S.rev);
       S=m.S;
       if(!started)beginGame();else present();
@@ -653,7 +682,7 @@ function beat(){
   }else if(role==='guest'){
     if(mySeat<0&&now-lastJoin>1500){lastJoin=now;send({k:'join',name:joinName})}
     if(mySeat<0&&now-joinStart>12000)return leaveOnline('Could not reach the host. Check the link and try again.');
-    if(now-lastPing>2000){lastPing=now;send({k:'ping'})}
+    if(now-lastPing>2000){lastPing=now;heartbeat()}
     if(now-hostSeen>12000)return leaveOnline('The host disconnected.');
   }
 }
@@ -670,7 +699,7 @@ function botsScreen(){
   sheet('<h2>Play bots</h2><span class="lab">Players</span><div class="seg">'+[2,3,4].map(n=>'<button class="'+(CFG.n===n?'on':'')+'" data-a="n'+n+'">'+n+'</button>').join('')+'</div><span class="lab">Bot skill</span><div class="seg"><button class="'+(CFG.lv==='easy'?'on':'')+'" data-a="lveasy">Easy</button><button class="'+(CFG.lv==='smart'?'on':'')+'" data-a="lvsmart">Smart</button></div><button class="btn" data-a="startbots">Start game</button><button class="btn alt" data-a="menu">Back</button>');
 }
 function onlineScreen(msg){
-  sheet('<h2>Play friends online</h2><p class="lead">Create a room and share the link, or join with a code.</p><input id="nm" maxlength="12" placeholder="Your name" value="'+esc(ls.get('ludo_name')||'')+'"><button class="btn" data-a="create">Create room</button><span class="lab">Have a code?</span><div class="row"><input id="cd" maxlength="5" placeholder="Room code" style="text-transform:uppercase"><button class="btn" data-a="joincode">Join</button></div>'+(msg?'<p class="err">'+esc(msg)+'</p>':'')+'<button class="btn alt" data-a="menu">Back</button>');
+  sheet('    <h2>Play friends online</h2><p class="lead">Create a room and share the link, or join with a code. Friends can join from any device.</p><input id="nm" maxlength="12" placeholder="Your name" value="'+esc(ls.get('ludo_name')||'')+'"><button class="btn" data-a="create">Create room</button><span class="lab">Have a code?</span><div class="row"><input id="cd" maxlength="5" placeholder="Room code" style="text-transform:uppercase"><button class="btn" data-a="joincode">Join</button></div>'+(msg?'<p class="err">'+esc(msg)+'</p>':'')+'<button class="btn alt" data-a="menu">Back</button>');
 }
 function joinScreen(c,msg){
   role='menu';
@@ -702,22 +731,25 @@ async function createRoom(){
   const name=cleanName($('nm').value)||'Host';ls.set('ludo_name',name);
   connecting('Setting up your room.');
   code=Array.from({length:5},()=>'ABCDEFGHJKMNPQRSTUVWXYZ23456789'[Math.floor(Math.random()*31)]).join('');
-  try{await connect(code)}catch(e){return leaveOnline(e.message)}
+  try{await connect(code,true)}catch(e){return leaveOnline(e.message)}
   role='host';mySeat=0;started=false;S=null;lastSeen={};lobbySig='';
   lobby={seats:[{t:'human',name:name,cid:cid},{t:'empty',name:'',cid:''},{t:'empty',name:'',cid:''},{t:'empty',name:'',cid:''}]};
   clearInterval(beatT);beatT=setInterval(beat,500);
-  lobbyScreen();
+  lobbyScreen();sendLobby();startNetwork();
 }
 async function joinRoom(c,name){
   name=cleanName(name)||'Player';ls.set('ludo_name',name);
   c=String(c||'').toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,5);
   if(c.length!==5)return onlineScreen('Enter the 5-character room code.');
-  code=c;connecting('Joining the room.');
-  try{await connect(code)}catch(e){return leaveOnline(e.message)}
+  connecting('Joining the room.');
+  try{await connect(c)}catch(e){return leaveOnline(e.message)}
   role='guest';mySeat=-1;started=false;S=null;lobby=null;lobbySig='';joinName=name;lastRev=-1;
   hostSeen=lastJoin=joinStart=performance.now();
+  if(netBootstrap&&netBootstrap.lobby)onNet(netBootstrap.lobby);
+  if(netBootstrap&&netBootstrap.state)onNet(netBootstrap.state);
+  netBootstrap=null;
   send({k:'join',name:name});
-  clearInterval(beatT);beatT=setInterval(beat,500);
+  clearInterval(beatT);beatT=setInterval(beat,500);startNetwork();
 }
 function hostStart(){
   if(role!=='host'||started)return;
